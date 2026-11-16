@@ -16,7 +16,7 @@
             --text-secondary: #475569;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --primary: #059669; /* Газар зүйн ногоон өнгө рүү шилжүүллээ */
+            --primary: #059669;
             --primary-hover: #047857;
             --primary-light: #ecfdf5;
             --emerald: #10b981;
@@ -317,7 +317,7 @@
         }
 
         .btn-emerald {
-            background: #3b82f6; /* Цэнхэр өнгө (Далай тэнгис) */
+            background: #3b82f6;
             color: #ffffff;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
         }
@@ -801,23 +801,6 @@
             background: #ecfdf5;
         }
 
-        .progress-track {
-            width: 100%;
-            max-width: 130px;
-            height: 7px;
-            background: #e2e8f0;
-            border-radius: 999px;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #059669);
-            border-radius: 999px;
-            transition: width 0.3s ease;
-        }
-
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -857,12 +840,6 @@
             font-weight: 800;
             color: var(--text-primary);
             margin: 4px 0;
-        }
-
-        .kpi-trend {
-            font-size: 11.5px;
-            font-weight: 700;
-            color: var(--emerald);
         }
 
         /* Modals & Toasts */
@@ -917,7 +894,6 @@
         .toast-error { background: #e11d48; }
         .toast-info { background: #1e293b; }
 
-        /* Particle Burst for Correct Answer */
         .confetti-piece {
             position: fixed;
             width: 10px;
@@ -973,7 +949,6 @@
             color: #0f172a;
         }
 
-        /* Jeopardy Teams & Board */
         .teams-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -1073,7 +1048,6 @@
             cursor: not-allowed;
         }
 
-        /* 3D Keyword Flip Card */
         .flashcard-scene {
             perspective: 1100px;
             width: 100%;
@@ -1123,7 +1097,6 @@
             transform: rotateY(180deg);
         }
 
-        /* Speed Matching Grid */
         .match-columns {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1174,10 +1147,6 @@
             background: #fff1f2;
         }
 
-        .print-only-header {
-            display: none;
-        }
-
         @media print {
             .app-header, .nav-bar-wrap, .no-print {
                 display: none !important;
@@ -1189,12 +1158,6 @@
                 box-shadow: none !important;
                 border: none !important;
                 padding: 0 !important;
-            }
-            .print-only-header {
-                display: block !important;
-                margin-bottom: 14px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #0f172a;
             }
         }
 
@@ -1216,7 +1179,6 @@
             background: transparent url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="1.5" fill="%23fff" opacity="0.8"/><circle cx="100" cy="50" r="1" fill="%23cbd5e1" opacity="0.6"/><circle cx="150" cy="180" r="2" fill="%23fff" opacity="0.9"/><circle cx="60" cy="130" r="1" fill="%2394a3b8" opacity="0.4"/></svg>') repeat;
         }
         .stars-slow { animation: panStars 60s linear infinite; }
-        .stars-fast { animation: panStars 30s linear infinite; transform: scale(1.5); opacity: 0.5; }
 
         @keyframes panStars {
             0% { transform: translateY(0); }
@@ -1274,6 +1236,13 @@
             20%, 80% { transform: translate3d(4px, 0, 0); }
             30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
             40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
         }
     </style>
 </head>
@@ -1664,6 +1633,7 @@
             adminQMode: 'mcq',
             adminEditQuestionId: null,
             adminFactEditId: null,
+            adminKeywordEditId: null,
             adminJeopCat: 0,
             adminJeopRow: 0,
             pinError: '',
@@ -2067,6 +2037,21 @@
             });
         }
 
+        function markKeywordMastered(kwId) {
+            if (!state.masteredKeywordIds.includes(kwId)) {
+                state.masteredKeywordIds.push(kwId);
+                SoundFX.fanfare();
+                if (ui.activeStudentId) {
+                    awardStudentPoints(ui.activeStudentId, 10, 'map', 'Түлхүүр үг цээжилсэн (+10)');
+                    showToast('⭐ +10 оноо нэмэгдлээ!');
+                } else {
+                    showToast('⭐ Түлхүүр үг эзэмшсэнээр тэмдэглэгдлээ!');
+                }
+                saveState();
+                render();
+            }
+        }
+
         function initKeywordMatchRound() {
             const pool = [...state.keywords].sort(() => Math.random() - 0.5).slice(0, 6);
             ui.matchPairs = pool; ui.matchShuffledDefs = [...pool].sort(() => Math.random() - 0.5);
@@ -2100,6 +2085,7 @@
 
         function checkKeywordSpelling() {
             const list = getFilteredKeywords().length > 0 ? getFilteredKeywords() : state.keywords;
+            if (list.length === 0) return;
             const current = list[ui.spellIdx % list.length];
             const cleanUser = ui.spellInput.trim().toLowerCase().replace(/\s+/g, ' ');
             const cleanTarget = current.term.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -2122,7 +2108,7 @@
            5.1 QUIZ AND FACT HELPER FUNCTIONS
            ========================================================================== */
         function answerQuizMcq(optIdx) {
-            if (ui.quizSubmitted) return;
+            if (ui.quizSubmitted || state.questions.length === 0) return;
             const q = state.questions[ui.quizIdx % state.questions.length];
             ui.quizSubmitted = true; ui.quizSelectedOpt = optIdx;
             const isCorrect = optIdx === q.correct;
@@ -2141,7 +2127,7 @@
         function nextQuizMcq() { ui.quizIdx++; ui.quizSubmitted = false; ui.quizSelectedOpt = null; ui.quizShowHint = false; render(); }
 
         function answerQuizFact(isTrueBtn) {
-            if (ui.factAnswered) return;
+            if (ui.factAnswered || state.factChecks.length === 0) return;
             const f = state.factChecks[ui.factIdx % state.factChecks.length];
             const isCorrect = isTrueBtn === f.isTrue;
             ui.factAnswered = { isTrueBtn, isCorrect };
@@ -2484,6 +2470,9 @@
            -------------------------------------------------------------------------- */
         function renderKeywordsModule() {
             const list = getFilteredKeywords().length > 0 ? getFilteredKeywords() : state.keywords;
+            if (list.length === 0) {
+                return `<div class="card"><p>Түлхүүр үг олдсонгүй. Удирдлага хэсгээс нэмнэ үү.</p></div>`;
+            }
             const card = list[ui.kwCardIdx % list.length];
             const isMastered = state.masteredKeywordIds.includes(card.id);
 
@@ -2500,6 +2489,7 @@
                     ${ui.kwSubMode === 'cards' ? `
                         <div class="wheel-toolbar">
                             <input class="input" style="max-width:240px;" placeholder="🔍 Хайх..." value="${escapeHtml(ui.kwSearch)}" oninput="ui.kwSearch=this.value; ui.kwCardIdx=0; render();" />
+                            <span style="font-size:12px; font-weight:700; color:#64748b;">Нийт: ${list.length} үг (${(ui.kwCardIdx % list.length) + 1}/${list.length})</span>
                         </div>
                         <div class="flashcard-scene" onclick="SoundFX.tick(); ui.kwFlipped=!ui.kwFlipped; render();">
                             <div class="flashcard-inner ${ui.kwFlipped ? 'flipped' : ''}">
@@ -2670,11 +2660,12 @@
         }
 
         function renderQuizMcqSection() {
+            if (state.questions.length === 0) return `<p>Тестийн асуулт алга байна.</p>`;
             const q = state.questions[ui.quizIdx % state.questions.length];
             return `
                 <div style="background:#0f172a; color:#ffffff; border-radius:20px; padding:22px; max-width:780px; margin:0 auto;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
-                        <span class="igcse-pill">Сорил ${(ui.quizIdx % state.questions.length) + 1}</span><span class="badge badge-amber">+10 оноо</span>
+                        <span class="igcse-pill">Сорил ${(ui.quizIdx % state.questions.length) + 1} / ${state.questions.length}</span><span class="badge badge-amber">+10 оноо</span>
                     </div>
                     <div class="challenge-q-text">${ui.langMode === 'MN_EN' ? escapeHtml(q.questionMn) : escapeHtml(q.questionEn)}</div>
                     <div class="options-grid" style="margin:20px 0;">
@@ -2695,10 +2686,11 @@
         }
 
         function renderQuizFactSection() {
+            if (state.factChecks.length === 0) return `<p>Үнэн/Худал асуулт алга байна.</p>`;
             const f = state.factChecks[ui.factIdx % state.factChecks.length];
             return `
                 <div style="background:linear-gradient(135deg, #1e293b, #0f172a); color:#fff; border-radius:20px; padding:22px; max-width:700px; margin:0 auto;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span class="badge badge-indigo">Баримт ${(ui.factIdx % state.factChecks.length) + 1}</span><span class="badge badge-amber">+10 оноо</span></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span class="badge badge-indigo">Баримт ${(ui.factIdx % state.factChecks.length) + 1} / ${state.factChecks.length}</span><span class="badge badge-amber">+10 оноо</span></div>
                     <div style="text-align:center; font-size:22px; font-weight:800; margin-bottom:30px;">"${escapeHtml(f.statementMn)}"</div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
                         <button class="btn ${ui.factAnswered ? (f.isTrue ? 'btn-emerald' : (ui.factAnswered.isTrueBtn ? 'btn-rose' : 'btn-outline')) : 'btn-outline'}" style="padding:20px; font-size:18px;" onclick="answerQuizFact(true)" ${ui.factAnswered ? 'disabled' : ''}>✅ ҮНЭН</button>
@@ -2713,6 +2705,7 @@
            MODULE 6: ROCKET GAME
            -------------------------------------------------------------------------- */
         function renderRocketModule() {
+            if (state.questions.length === 0) return `<div class="card"><p>Асуулт алга байна.</p></div>`;
             const q = state.questions[ui.rocketQIdx % state.questions.length];
             const visualAlt = Math.min(320, ui.rocketAltitude);
             return `
@@ -2776,7 +2769,6 @@
             const totalPts = state.students.reduce((sum, s) => sum + getTotalPoints(s), 0);
             const activeStus = state.students.filter(s => getTotalPoints(s) >= 40).length;
             const acc = state.analytics.totalAttempts > 0 ? Math.round((state.analytics.correctAnswers / state.analytics.totalAttempts) * 100) : 0;
-            const mu = state.analytics.moduleUsage || {};
 
             return `
                 <div>
@@ -2801,7 +2793,7 @@
         }
 
         /* --------------------------------------------------------------------------
-           MODULE 8: TEACHER ADMIN PANEL
+           MODULE 8: TEACHER ADMIN PANEL (FULL CRUD FOR QUESTIONS, KEYWORDS, JEOPARDY)
            -------------------------------------------------------------------------- */
         function renderAdminModule() {
             if (!ui.adminUnlocked) {
@@ -2821,87 +2813,552 @@
             return `
                 <div class="card">
                     <div class="card-header">
-                        <div><h2 class="card-title">⚙️ Удирдлага</h2></div>
-                        <div style="display:flex; gap:6px;">
+                        <div><h2 class="card-title">⚙️ Багшийн Удирдлага</h2><p class="card-subtitle">Сурагчид, хүрдний асуулт, түлхүүр үгс болон Jeopardy самбарыг удирдах.</p></div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
                             <button class="btn ${ui.adminSubTab === 'students' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='students'; render();">👥 Сурагч & Анги</button>
-                            <button class="btn ${ui.adminSubTab === 'questions' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='questions'; render();">❓ Асуулт</button>
-                            <button class="btn ${ui.adminSubTab === 'keywords' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='keywords'; render();">🃏 Түлхүүр үг</button>
+                            <button class="btn ${ui.adminSubTab === 'questions' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='questions'; render();">❓ Асуулт & Jeopardy</button>
+                            <button class="btn ${ui.adminSubTab === 'keywords' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='keywords'; render();">🃏 Түлхүүр үгс</button>
+                            <button class="btn ${ui.adminSubTab === 'backup' ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="ui.adminSubTab='backup'; render();">💾 Нөөцлөх</button>
                             <button class="btn btn-rose btn-sm" onclick="ui.adminUnlocked=false; sessionStorage.removeItem('geo_admin'); render();">🔒 Цоожлох</button>
                         </div>
                     </div>
 
-                    ${ui.adminSubTab === 'students' ? `
-                        <div class="pool-grid">
-                            <div class="pool-panel">
-                                <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">📋 Сурагч Нэмэх</h3>
-                                <form onsubmit="handleBulkAddStudents(event)" style="display:flex; flex-direction:column; gap:10px;">
-                                    <select id="bulkClsSel" class="select" required>
-                                        ${state.classes.map(c => `<option value="${c}">${c} анги</option>`).join('')}
-                                    </select>
-                                    <textarea id="bulkNamesTxt" class="textarea" rows="3" placeholder="Мөр бүрд 1 нэр..." required></textarea>
-                                    <button type="submit" class="btn btn-emerald">+ Бүртгэх</button>
-                                </form>
-
-                                <h4 style="font-size:13px; font-weight:800; margin-bottom:6px; margin-top:16px; color:#059669;">➕ Шинэ анги үүсгэх</h4>
-                                <div style="display:flex; gap:8px; margin-bottom:16px;">
-                                    <input id="newClsInp" class="input" placeholder="Жнь: 7А, 8Б..." />
-                                    <button type="button" class="btn btn-emerald" onclick="addNewClassAdmin()">Нэмэх</button>
-                                </div>
-
-                                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #cbd5e1;">
-                                    <h4 style="font-size:13px; font-weight:800; margin-bottom:6px; color:#e11d48;">🗑️ Анги устгах</h4>
-                                    <div style="display:flex; gap:8px;">
-                                        <select id="deleteClsSel" class="select">
-                                            ${state.classes.map(c => `<option value="${c}">${c} анги</option>`).join('')}
-                                        </select>
-                                        <button class="btn btn-rose" onclick="deleteClass()">Устгах</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pool-panel">
-                                <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">🎓 Урамшууллын Томьёо</h3>
-                                <form onsubmit="handleSaveFormula(event)" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
-                                    <div style="display:flex; gap:8px;">
-                                        <input id="admPerBonus" type="number" class="input" value="${state.pointsPerBonus}" min="5" title="Хэдэн оноо = +1.0 дүн" required />
-                                        <input id="admMaxBonus" type="number" class="input" value="${state.maxBonus}" min="1" title="Дээд нэмэлт оноо" required />
-                                        <button type="submit" class="btn btn-primary">Хадгалах</button>
-                                    </div>
-                                </form>
-                                <h4 style="font-size:13px; font-weight:800; margin-bottom:6px;">Сурагчдын жагсаалт</h4>
-                                <div style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
-                                    ${state.students.map(s => `
-                                        <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 10px; border-radius:10px; border:1px solid #e2e8f0; font-size:12.5px;">
-                                            <span><strong>${escapeHtml(s.className)}</strong> • ${escapeHtml(s.name)}</span>
-                                            <button class="btn btn-rose btn-sm" onclick="deleteStudent('${s.id}')">Устгах</button>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    ` : ui.adminSubTab === 'questions' ? `
-                        <div>
-                            <div class="class-pills" style="margin-bottom: 16px;">
-                                <button class="pill-btn ${ui.adminQMode === 'mcq' ? 'active' : ''}" onclick="ui.adminQMode='mcq'; render();">Тест (MCQ)</button>
-                                <button class="pill-btn ${ui.adminQMode === 'fact' ? 'active' : ''}" onclick="ui.adminQMode='fact'; render();">Үнэн / Худал</button>
-                                <button class="pill-btn ${ui.adminQMode === 'jeopardy' ? 'active' : ''}" onclick="ui.adminQMode='jeopardy'; render();">Jeopardy</button>
-                            </div>
-                            <!-- Асуулт засварлах формыг товчлов (урт тул хэвээр үлдээнэ) -->
-                            <p style="font-size:13px; color:#64748b;">Асуултуудыг шууд JSON-оор сольж шинэчлэх боломжтой.</p>
-                        </div>
-                    ` : `
-                        <div class="pool-panel">
-                            <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">💾 JSON Нөөц</h3>
-                            <div style="display:flex; gap:8px;">
-                                <button class="btn btn-emerald btn-sm" onclick="exportFullJson()">📥 Татах</button>
-                                <button class="btn btn-primary btn-sm" onclick="document.getElementById('jsonImpInp').click()">📤 Оруулах</button>
-                                <input id="jsonImpInp" type="file" accept=".json" style="display:none;" onchange="importFullJson(event)" />
-                                <button class="btn btn-rose btn-sm" onclick="resetPlatformDefaults()">🔄 Анхны төлөв</button>
-                            </div>
-                        </div>
-                    `}
+                    ${ui.adminSubTab === 'students' ? renderAdminStudentsTab() :
+                      ui.adminSubTab === 'questions' ? renderAdminQuestionsTab() :
+                      ui.adminSubTab === 'keywords' ? renderAdminKeywordsTab() :
+                      renderAdminBackupTab()}
                 </div>
             `;
+        }
+
+        function renderAdminStudentsTab() {
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">📋 Сурагч Нэмэх</h3>
+                        <form onsubmit="handleBulkAddStudents(event)" style="display:flex; flex-direction:column; gap:10px;">
+                            <select id="bulkClsSel" class="select" required>
+                                ${state.classes.map(c => `<option value="${c}">${c} анги</option>`).join('')}
+                            </select>
+                            <textarea id="bulkNamesTxt" class="textarea" rows="3" placeholder="Мөр бүрд 1 нэр..." required></textarea>
+                            <button type="submit" class="btn btn-emerald">+ Бүртгэх</button>
+                        </form>
+
+                        <h4 style="font-size:13px; font-weight:800; margin-bottom:6px; margin-top:16px; color:#059669;">➕ Шинэ анги үүсгэх</h4>
+                        <div style="display:flex; gap:8px; margin-bottom:16px;">
+                            <input id="newClsInp" class="input" placeholder="Жнь: 7А, 8Б..." />
+                            <button type="button" class="btn btn-emerald" onclick="addNewClassAdmin()">Нэмэх</button>
+                        </div>
+
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #cbd5e1;">
+                            <h4 style="font-size:13px; font-weight:800; margin-bottom:6px; color:#e11d48;">🗑️ Анги устгах</h4>
+                            <div style="display:flex; gap:8px;">
+                                <select id="deleteClsSel" class="select">
+                                    ${state.classes.map(c => `<option value="${c}">${c} анги</option>`).join('')}
+                                </select>
+                                <button class="btn btn-rose" onclick="deleteClass()">Устгах</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">🎓 Урамшууллын Томьёо</h3>
+                        <form onsubmit="handleSaveFormula(event)" style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                            <div style="display:flex; gap:8px;">
+                                <input id="admPerBonus" type="number" class="input" value="${state.pointsPerBonus}" min="5" title="Хэдэн оноо = +1.0 дүн" required />
+                                <input id="admMaxBonus" type="number" class="input" value="${state.maxBonus}" min="1" title="Дээд нэмэлт оноо" required />
+                                <button type="submit" class="btn btn-primary">Хадгалах</button>
+                            </div>
+                        </form>
+                        <h4 style="font-size:13px; font-weight:800; margin-bottom:6px;">Сурагчдын жагсаалт (${state.students.length})</h4>
+                        <div style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+                            ${state.students.map(s => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:6px 10px; border-radius:10px; border:1px solid #e2e8f0; font-size:12.5px;">
+                                    <span><strong>${escapeHtml(s.className)}</strong> • ${escapeHtml(s.name)}</span>
+                                    <button class="btn btn-rose btn-sm" onclick="deleteStudent('${s.id}')">Устгах</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminQuestionsTab() {
+            return `
+                <div>
+                    <div class="class-pills" style="margin-bottom: 16px;">
+                        <button class="pill-btn ${ui.adminQMode === 'mcq' ? 'active' : ''}" onclick="ui.adminQMode='mcq'; ui.adminEditQuestionId=null; render();">🎡 Хүрд & Тест (MCQ)</button>
+                        <button class="pill-btn ${ui.adminQMode === 'fact' ? 'active' : ''}" onclick="ui.adminQMode='fact'; ui.adminFactEditId=null; render();">⚖️ Үнэн / Худал</button>
+                        <button class="pill-btn ${ui.adminQMode === 'jeopardy' ? 'active' : ''}" onclick="ui.adminQMode='jeopardy'; render();">🏆 Алтан Хонх (Jeopardy)</button>
+                    </div>
+                    ${ui.adminQMode === 'mcq' ? renderAdminMcqManager() :
+                      ui.adminQMode === 'fact' ? renderAdminFactManager() :
+                      renderAdminJeopardyManager()}
+                </div>
+            `;
+        }
+
+        function renderAdminMcqManager() {
+            const editQ = ui.adminEditQuestionId ? state.questions.find(q => q.id === ui.adminEditQuestionId) : null;
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">
+                            ${editQ ? `✏️ Асуулт #${editQ.id} засах` : '➕ Хүрд / Тестийн асуулт нэмэх'}
+                        </h3>
+                        <form onsubmit="handleSaveMcqQuestion(event)" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <div>
+                                    <label class="form-label">Хичээл / Төрөл</label>
+                                    <input id="qPaperInp" class="input" value="${editQ ? escapeHtml(editQ.paper) : 'Газар зүй'}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Сэдэв (Хүрдэн дээр харагдана)</label>
+                                    <input id="qTopicInp" class="input" placeholder="Жнь: Монгол орон" value="${editQ ? escapeHtml(editQ.topic) : ''}" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Асуулт (Монгол)</label>
+                                <textarea id="qMnInp" class="textarea" rows="2" placeholder="Асуултаа монголоор бичнэ үү..." required>${editQ ? escapeHtml(editQ.questionMn) : ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Асуулт (Англи - заавал биш)</label>
+                                <input id="qEnInp" class="input" placeholder="English question..." value="${editQ ? escapeHtml(editQ.questionEn) : ''}" />
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <div>
+                                    <label class="form-label">Сонголт A</label>
+                                    <input id="qOpt0" class="input" value="${editQ ? escapeHtml(editQ.options[0]) : ''}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Сонголт B</label>
+                                    <input id="qOpt1" class="input" value="${editQ ? escapeHtml(editQ.options[1]) : ''}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Сонголт C</label>
+                                    <input id="qOpt2" class="input" value="${editQ ? escapeHtml(editQ.options[2]) : ''}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Сонголт D</label>
+                                    <input id="qOpt3" class="input" value="${editQ ? escapeHtml(editQ.options[3]) : ''}" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Зөв хариулт</label>
+                                <select id="qCorrectSel" class="select">
+                                    <option value="0" ${editQ && editQ.correct === 0 ? 'selected' : ''}>Сонголт A</option>
+                                    <option value="1" ${editQ && editQ.correct === 1 ? 'selected' : ''}>Сонголт B</option>
+                                    <option value="2" ${editQ && editQ.correct === 2 ? 'selected' : ''}>Сонголт C</option>
+                                    <option value="3" ${editQ && editQ.correct === 3 ? 'selected' : ''}>Сонголт D</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Зөвлөмж (Hint)</label>
+                                <input id="qHintInp" class="input" placeholder="Сурагчид өгөх сэжүүр..." value="${editQ ? escapeHtml(editQ.hint) : ''}" />
+                            </div>
+                            <div>
+                                <label class="form-label">Тайлбар (Зөв хариулсны дараа гарна)</label>
+                                <input id="qExpInp" class="input" placeholder="Яагаад энэ хариулт зөв бэ?" value="${editQ ? escapeHtml(editQ.explanation) : ''}" />
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:4px;">
+                                <button type="submit" class="btn btn-primary" style="flex:1;">${editQ ? '💾 Шинэчлэх' : '➕ Асуулт нэмэх'}</button>
+                                ${editQ ? `<button type="button" class="btn btn-outline" onclick="ui.adminEditQuestionId=null; render();">Болих</button>` : ''}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">📋 Бүртгэлтэй асуултууд (${state.questions.length})</h3>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:540px; overflow-y:auto;">
+                            ${state.questions.map(q => `
+                                <div style="background:#ffffff; border:1px solid ${ui.adminEditQuestionId === q.id ? '#059669' : '#e2e8f0'}; border-radius:12px; padding:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-indigo">#${q.id} • ${escapeHtml(q.topic)}</span>
+                                        <div style="display:flex; gap:4px;">
+                                            <button class="btn btn-outline btn-sm" onclick="ui.adminEditQuestionId=${q.id}; render();">✏️</button>
+                                            <button class="btn btn-rose btn-sm" onclick="deleteMcqQuestion(${q.id})">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">${escapeHtml(q.questionMn)}</div>
+                                    <div style="font-size:11.5px; color:#059669; font-weight:700;">✅ Зөв: ${['A', 'B', 'C', 'D'][q.correct]} — ${escapeHtml(q.options[q.correct])}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminFactManager() {
+            const editF = ui.adminFactEditId ? state.factChecks.find(f => f.id === ui.adminFactEditId) : null;
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">
+                            ${editF ? `✏️ Баримт #${editF.id} засах` : '➕ Үнэн / Худал асуулт нэмэх'}
+                        </h3>
+                        <form onsubmit="handleSaveFactQuestion(event)" style="display:flex; flex-direction:column; gap:10px;">
+                            <div>
+                                <label class="form-label">Сэдэв</label>
+                                <input id="fTopicInp" class="input" placeholder="Жнь: Тив, Уул, Далай" value="${editF ? escapeHtml(editF.topic) : ''}" required />
+                            </div>
+                            <div>
+                                <label class="form-label">Өгүүлбэр / Баримт (Монгол)</label>
+                                <textarea id="fMnInp" class="textarea" rows="3" placeholder="Жнь: Дэлхий дээр нийт 7 тив байдаг." required>${editF ? escapeHtml(editF.statementMn) : ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Өгүүлбэр (Англи - заавал биш)</label>
+                                <input id="fEnInp" class="input" placeholder="English statement..." value="${editF ? escapeHtml(editF.statementEn) : ''}" />
+                            </div>
+                            <div>
+                                <label class="form-label">Зөв хариулт аль нь вэ?</label>
+                                <select id="fTrueSel" class="select">
+                                    <option value="true" ${editF && editF.isTrue === true ? 'selected' : ''}>✅ ҮНЭН (True)</option>
+                                    <option value="false" ${editF && editF.isTrue === false ? 'selected' : ''}>❌ ХУДАЛ (False)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Тайлбар</label>
+                                <textarea id="fExpInp" class="textarea" rows="2" placeholder="Яагаад үнэн эсвэл худал болохыг тайлбарлана уу...">${editF ? escapeHtml(editF.explanation) : ''}</textarea>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button type="submit" class="btn btn-primary" style="flex:1;">${editF ? '💾 Шинэчлэх' : '➕ Нэмэх'}</button>
+                                ${editF ? `<button type="button" class="btn btn-outline" onclick="ui.adminFactEditId=null; render();">Болих</button>` : ''}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">📋 Бүртгэлтэй баримтуу (${state.factChecks.length})</h3>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto;">
+                            ${state.factChecks.map(f => `
+                                <div style="background:#ffffff; border:1px solid ${ui.adminFactEditId === f.id ? '#059669' : '#e2e8f0'}; border-radius:12px; padding:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge ${f.isTrue ? 'badge-emerald' : 'badge-rose'}">${f.isTrue ? '✅ ҮНЭН' : '❌ ХУДАЛ'} • ${escapeHtml(f.topic)}</span>
+                                        <div style="display:flex; gap:4px;">
+                                            <button class="btn btn-outline btn-sm" onclick="ui.adminFactEditId=${f.id}; render();">✏️</button>
+                                            <button class="btn btn-rose btn-sm" onclick="deleteFactQuestion(${f.id})">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:13px; font-weight:700;">"${escapeHtml(f.statementMn)}"</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminJeopardyManager() {
+            const catIdx = ui.adminJeopCat;
+            const rowIdx = ui.adminJeopRow;
+            const cat = state.jeopardyBoard[catIdx];
+            const item = cat.questions[rowIdx];
+
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">🏆 Алтан Хонх (Jeopardy) Засварлах</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                            <div>
+                                <label class="form-label">1. Сэдэв (Багана) сонгох</label>
+                                <select class="select" onchange="ui.adminJeopCat=Number(this.value); render();">
+                                    ${state.jeopardyBoard.map((c, i) => `<option value="${i}" ${i === catIdx ? 'selected' : ''}>${i + 1}. ${escapeHtml(c.category)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">2. Онооны нүд сонгох</label>
+                                <select class="select" onchange="ui.adminJeopRow=Number(this.value); render();">
+                                    ${cat.questions.map((q, r) => `<option value="${r}" ${r === rowIdx ? 'selected' : ''}>${q.points} онооны асуулт</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="background:#eef2ff; padding:10px; border-radius:12px; margin-bottom:12px;">
+                            <label class="form-label" style="color:#3730a3;">Сэдвийн гарчиг өөрчлөх:</label>
+                            <div style="display:flex; gap:6px;">
+                                <input id="jeopCatNameInp" class="input" value="${escapeHtml(cat.category)}" />
+                                <button type="button" class="btn btn-primary btn-sm" onclick="saveJeopardyCatName()">Хадгалах</button>
+                            </div>
+                        </div>
+
+                        <form onsubmit="handleSaveJeopardyItem(event)" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <div>
+                                    <label class="form-label">Оноо</label>
+                                    <input id="jeopPtsInp" type="number" step="50" class="input" value="${item.points}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Дэд сэдэв</label>
+                                    <input id="jeopSylInp" class="input" value="${escapeHtml(item.syllabus || '')}" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Асуулт (Монгол)</label>
+                                <textarea id="jeopQMnInp" class="textarea" rows="2" required>${escapeHtml(item.qMn)}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Асуулт (Англи - заавал биш)</label>
+                                <input id="jeopQEnInp" class="input" value="${escapeHtml(item.qEn || '')}" />
+                            </div>
+                            <div>
+                                <label class="form-label">Зөвлөмж (Hint)</label>
+                                <input id="jeopHintInp" class="input" value="${escapeHtml(item.hint || '')}" />
+                            </div>
+                            <div>
+                                <label class="form-label">Зөв хариулт</label>
+                                <input id="jeopAnsInp" class="input" value="${escapeHtml(item.answer)}" required />
+                            </div>
+                            <button type="submit" class="btn btn-emerald">💾 Асуулт хадгалах</button>
+                        </form>
+                    </div>
+
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">📋 "${escapeHtml(cat.category)}" сэдвийн асуултууд</h3>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${cat.questions.map((q, r) => `
+                                <div onclick="ui.adminJeopRow=${r}; render();" style="cursor:pointer; background:#ffffff; border:2px solid ${r === rowIdx ? '#059669' : '#e2e8f0'}; border-radius:12px; padding:12px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                        <span class="badge badge-amber">${q.points} ОНОО</span>
+                                        <span style="font-size:11px; color:#059669; font-weight:700;">Засах бол дарна уу ✏️</span>
+                                    </div>
+                                    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">${escapeHtml(q.qMn)}</div>
+                                    <div style="font-size:12px; color:#047857; font-weight:800;">Хариулт: ${escapeHtml(q.answer)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminKeywordsTab() {
+            const editKw = ui.adminKeywordEditId ? state.keywords.find(k => k.id === ui.adminKeywordEditId) : null;
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">
+                            ${editKw ? `✏️ "${escapeHtml(editKw.term)}" үгийг засах` : '➕ Шинэ Түлхүүр Үг Нэмэх'}
+                        </h3>
+                        <form onsubmit="handleSaveKeyword(event)" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                                <div>
+                                    <label class="form-label">Англи нэр томьёо (Term)</label>
+                                    <input id="kwTermInp" class="input" placeholder="Жнь: Volcano" value="${editKw ? escapeHtml(editKw.term) : ''}" required />
+                                </div>
+                                <div>
+                                    <label class="form-label">Бүлэг / Сэдэв</label>
+                                    <input id="kwChapInp" class="input" placeholder="Жнь: Газар хөдлөлт" value="${editKw ? escapeHtml(editKw.chapter) : ''}" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Монгол орчуулга ба тайлбар</label>
+                                <textarea id="kwMnInp" class="textarea" rows="3" placeholder="Жнь: Галт уул — Дэлхийн гүнээс халуун магма оргилон гардаг уул." required>${editKw ? escapeHtml(editKw.mn) : ''}</textarea>
+                            </div>
+                            <div>
+                                <label class="form-label">Жишээ өгүүлбэр (Example - заавал биш)</label>
+                                <input id="kwExInp" class="input" placeholder="Жнь: Mount Fuji is a famous volcano." value="${editKw ? escapeHtml(editKw.example) : ''}" />
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button type="submit" class="btn btn-primary" style="flex:1;">${editKw ? '💾 Шинэчлэх' : '➕ Түлхүүр үг нэмэх'}</button>
+                                ${editKw ? `<button type="button" class="btn btn-outline" onclick="ui.adminKeywordEditId=null; render();">Болих</button>` : ''}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">📋 Бүртгэлтэй түлхүүр үгс (${state.keywords.length})</h3>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto;">
+                            ${state.keywords.map(kw => `
+                                <div style="background:#ffffff; border:1px solid ${ui.adminKeywordEditId === kw.id ? '#059669' : '#e2e8f0'}; border-radius:12px; padding:11px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <div>
+                                            <strong style="font-size:14px; color:#065f46;">${escapeHtml(kw.term)}</strong>
+                                            <span class="badge badge-slate" style="margin-left:6px;">${escapeHtml(kw.chapter)}</span>
+                                        </div>
+                                        <div style="display:flex; gap:4px;">
+                                            <button class="btn btn-outline btn-sm" onclick="ui.adminKeywordEditId='${kw.id}'; render();">✏️</button>
+                                            <button class="btn btn-rose btn-sm" onclick="deleteKeyword('${kw.id}')">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:12.5px; color:#334155;">${escapeHtml(kw.mn)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminBackupTab() {
+            return `
+                <div class="pool-grid">
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">💾 Өгөгдөл нөөцлөх ба Сэргээх (JSON)</h3>
+                        <p style="font-size:12.5px; color:#64748b; margin-bottom:12px;">Таны оруулсан бүх асуулт, түлхүүр үг, сурагчдын оноог файл болгон хадгалах эсвэл өөр компьютер дээр оруулах боломжтой.</p>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <button class="btn btn-emerald btn-sm" onclick="exportFullJson()">📥 Файл татах (.JSON)</button>
+                            <button class="btn btn-primary btn-sm" onclick="document.getElementById('jsonImpInp').click()">📤 Файл оруулах</button>
+                            <input id="jsonImpInp" type="file" accept=".json" style="display:none;" onchange="importFullJson(event)" />
+                            <button class="btn btn-rose btn-sm" onclick="resetPlatformDefaults()">🔄 Анхны төлөвт оруулах</button>
+                        </div>
+                    </div>
+                    <div class="pool-panel">
+                        <h3 style="font-size:15px; font-weight:800; margin-bottom:6px;">🔐 Багшийн PIN код солих</h3>
+                        <form onsubmit="handleChangeAdminPin(event)" style="display:flex; gap:8px; margin-top:10px;">
+                            <input id="newPinInp" type="text" class="input" placeholder="Шинэ PIN код (Жнь: 5678)" required />
+                            <button type="submit" class="btn btn-primary">Солих</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* ==========================================================================
+           8.1 ADMIN CRUD ACTION HANDLERS
+           ========================================================================== */
+        function handleSaveMcqQuestion(e) {
+            e.preventDefault();
+            const paper = document.getElementById('qPaperInp').value.trim() || 'Газар зүй';
+            const topic = document.getElementById('qTopicInp').value.trim();
+            const questionMn = document.getElementById('qMnInp').value.trim();
+            const questionEn = document.getElementById('qEnInp').value.trim() || questionMn;
+            const options = [
+                document.getElementById('qOpt0').value.trim(),
+                document.getElementById('qOpt1').value.trim(),
+                document.getElementById('qOpt2').value.trim(),
+                document.getElementById('qOpt3').value.trim()
+            ];
+            const correct = Number(document.getElementById('qCorrectSel').value);
+            const hint = document.getElementById('qHintInp').value.trim() || 'Бодоод үзээрэй!';
+            const explanation = document.getElementById('qExpInp').value.trim() || `Зөв хариулт: ${options[correct]}`;
+
+            if (ui.adminEditQuestionId) {
+                const idx = state.questions.findIndex(q => q.id === ui.adminEditQuestionId);
+                if (idx !== -1) {
+                    state.questions[idx] = { ...state.questions[idx], paper, topic, questionMn, questionEn, options, correct, hint, explanation };
+                    showToast(`Асуулт #${ui.adminEditQuestionId} шинэчлэгдлээ!`);
+                }
+                ui.adminEditQuestionId = null;
+            } else {
+                const maxId = state.questions.reduce((m, q) => Math.max(m, Number(q.id) || 0), 0);
+                state.questions.push({ id: maxId + 1, paper, topic, questionMn, questionEn, options, correct, hint, explanation });
+                showToast('Шинэ асуулт хүрд болон тестэд нэмэгдлээ!');
+            }
+            saveState();
+            render();
+        }
+
+        function deleteMcqQuestion(id) {
+            openConfirm(`Асуулт #${id}-г устгах уу?`, 'Хүрд болон тестээс бүрмөсөн устана.', () => {
+                state.questions = state.questions.filter(q => q.id !== id);
+                state.eliminatedQuestionIds = state.eliminatedQuestionIds.filter(qid => qid !== id);
+                if (ui.adminEditQuestionId === id) ui.adminEditQuestionId = null;
+                saveState();
+                showToast('Асуулт устгагдлаа.');
+                render();
+            });
+        }
+
+        function handleSaveFactQuestion(e) {
+            e.preventDefault();
+            const topic = document.getElementById('fTopicInp').value.trim();
+            const statementMn = document.getElementById('fMnInp').value.trim();
+            const statementEn = document.getElementById('fEnInp').value.trim() || statementMn;
+            const isTrue = document.getElementById('fTrueSel').value === 'true';
+            const explanation = document.getElementById('fExpInp').value.trim() || (isTrue ? 'Энэ бол ҮНЭН баримт.' : 'Энэ бол ХУДАЛ мэдээлэл.');
+
+            if (ui.adminFactEditId) {
+                const idx = state.factChecks.findIndex(f => f.id === ui.adminFactEditId);
+                if (idx !== -1) {
+                    state.factChecks[idx] = { ...state.factChecks[idx], topic, statementMn, statementEn, isTrue, explanation };
+                    showToast('Баримт шинэчлэгдлээ!');
+                }
+                ui.adminFactEditId = null;
+            } else {
+                const maxId = state.factChecks.reduce((m, f) => Math.max(m, Number(f.id) || 0), 0);
+                state.factChecks.push({ id: maxId + 1, topic, statementMn, statementEn, isTrue, explanation });
+                showToast('Шинэ Үнэн/Худал асуулт нэмэгдлээ!');
+            }
+            saveState();
+            render();
+        }
+
+        function deleteFactQuestion(id) {
+            openConfirm('Энэ баримтыг устгах уу?', 'Сэргээх боломжгүй.', () => {
+                state.factChecks = state.factChecks.filter(f => f.id !== id);
+                if (ui.adminFactEditId === id) ui.adminFactEditId = null;
+                saveState();
+                showToast('Устгагдлаа.');
+                render();
+            });
+        }
+
+        function saveJeopardyCatName() {
+            const val = document.getElementById('jeopCatNameInp').value.trim();
+            if (!val) return;
+            state.jeopardyBoard[ui.adminJeopCat].category = val;
+            saveState();
+            showToast('Сэдвийн нэр шинэчлэгдлээ!');
+            render();
+        }
+
+        function handleSaveJeopardyItem(e) {
+            e.preventDefault();
+            const item = state.jeopardyBoard[ui.adminJeopCat].questions[ui.adminJeopRow];
+            item.points = Number(document.getElementById('jeopPtsInp').value) || 100;
+            item.syllabus = document.getElementById('jeopSylInp').value.trim();
+            item.qMn = document.getElementById('jeopQMnInp').value.trim();
+            item.qEn = document.getElementById('jeopQEnInp').value.trim() || item.qMn;
+            item.hint = document.getElementById('jeopHintInp').value.trim();
+            item.answer = document.getElementById('jeopAnsInp').value.trim();
+            saveState();
+            showToast('Jeopardy асуулт хадгалагдлаа!');
+            render();
+        }
+
+        function handleSaveKeyword(e) {
+            e.preventDefault();
+            const term = document.getElementById('kwTermInp').value.trim();
+            const chapter = document.getElementById('kwChapInp').value.trim();
+            const mn = document.getElementById('kwMnInp').value.trim();
+            const example = document.getElementById('kwExInp').value.trim() || `We study ${term} in Geography.`;
+
+            if (ui.adminKeywordEditId) {
+                const idx = state.keywords.findIndex(k => k.id === ui.adminKeywordEditId);
+                if (idx !== -1) {
+                    state.keywords[idx] = { ...state.keywords[idx], term, chapter, mn, example };
+                    showToast(`"${term}" шинэчлэгдлээ!`);
+                }
+                ui.adminKeywordEditId = null;
+            } else {
+                state.keywords.push({ id: 'kw_' + Date.now(), term, chapter, mn, example });
+                showToast(`"${term}" түлхүүр үг нэмэгдлээ!`);
+            }
+            saveState();
+            render();
+        }
+
+        function deleteKeyword(id) {
+            openConfirm('Түлхүүр үгийг устгах уу?', 'Флаш карт болон тоглоомоос хасагдана.', () => {
+                state.keywords = state.keywords.filter(k => k.id !== id);
+                state.masteredKeywordIds = state.masteredKeywordIds.filter(kid => kid !== id);
+                if (ui.adminKeywordEditId === id) ui.adminKeywordEditId = null;
+                saveState();
+                showToast('Түлхүүр үг устгагдлаа.');
+                render();
+            });
+        }
+
+        function handleChangeAdminPin(e) {
+            e.preventDefault();
+            const val = document.getElementById('newPinInp').value.trim();
+            if (val.length < 4) { showToast('PIN код дор хаяж 4 тэмдэгт байна!', 'error'); return; }
+            state.adminPin = val;
+            saveState();
+            showToast('Багшийн PIN код солигдлоо!');
+            document.getElementById('newPinInp').value = '';
         }
 
         function handleAdminPinSubmit(e) { e.preventDefault(); const val = document.getElementById('adminPinInput').value; if (val === (state.adminPin || '1234')) { ui.adminUnlocked = true; ui.pinError = ''; sessionStorage.setItem('geo_admin', 'true'); render(); } else { ui.pinError = 'Буруу!'; render(); } }
@@ -2955,7 +3412,6 @@
             if (ui.historyModalStudentId) {
                 const st = state.students.find(s => s.id === ui.historyModalStudentId);
                 if (st) {
-                    const tot = getTotalPoints(st);
                     html += `
                         <div class="modal-backdrop" onclick="ui.historyModalStudentId=null; render();">
                             <div class="modal-card" onclick="event.stopPropagation();">
