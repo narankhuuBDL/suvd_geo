@@ -1568,14 +1568,15 @@
             collection
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ЭНД ӨӨРИЙН ШИНЭ FIREBASE PROJECT-ИЙН CONFIG-ИЙГ ОРУУЛНА УУ (Эсвэл Багшийн Удирдлагын Төвөөс шууд хуулж хадгална)
+        // ТАНЫ NB-GEO FIREBASE PROJECT-ИЙН ТОХИРГОО ХОЛБОГДСОН
         const DEFAULT_FB_CONFIG = {
-            apiKey: "",
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
+            apiKey: "AIzaSyBo-X3p4vvxHi4zBUsROnHjRna2hp4ttq0",
+            authDomain: "nb-geo.firebaseapp.com",
+            projectId: "nb-geo",
+            storageBucket: "nb-geo.firebasestorage.app",
+            messagingSenderId: "730940857353",
+            appId: "1:730940857353:web:4431faa5e891d44d9aecd8",
+            measurementId: "G-17SGCH3BG4"
         };
 
         const FB_CONFIG_STORAGE_KEY = 'geography_custom_fb_config_v1';
@@ -3480,12 +3481,12 @@
             if (!state.keywords.length) return;
             fcIndex = (fcIndex + state.keywords.length) % state.keywords.length;
             const item = state.keywords[fcIndex];
-            fcFlipped = false;
-            document.getElementById('fc-inner').classList.remove('rotate-y-180');
             document.getElementById('fc-cat').textContent = item.cat;
             document.getElementById('fc-term').textContent = item.term;
             document.getElementById('fc-def').textContent = item.def;
             document.getElementById('fc-idx-label').textContent = `${fcIndex + 1} / ${state.keywords.length}`;
+            fcFlipped = false;
+            document.getElementById('fc-inner').classList.remove('rotate-y-180');
         }
 
         function flipFlashcard() {
@@ -3494,9 +3495,9 @@
             document.getElementById('fc-inner').classList.toggle('rotate-y-180', fcFlipped);
         }
 
-        function stepFlashcard(dir) {
+        function stepFlashcard(delta) {
             SoundFX.click();
-            fcIndex += dir;
+            fcIndex += delta;
             renderFlashcard();
         }
 
@@ -3505,62 +3506,69 @@
             if (matchTimerInterval) clearInterval(matchTimerInterval);
             matchSelectedLeft = null;
             matchMatchedCount = 0;
-            matchStartTime = Date.now();
-
-            matchTimerInterval = setInterval(() => {
-                const sec = ((Date.now() - matchStartTime) / 1000).toFixed(1);
-                const el = document.getElementById('match-stopwatch');
-                if (el) el.textContent = `${sec}s`;
-            }, 100);
 
             const sample = fisherYatesShuffle(state.keywords).slice(0, 5);
             const leftItems = fisherYatesShuffle(sample);
             const rightItems = fisherYatesShuffle(sample);
 
-            document.getElementById('match-left-col').innerHTML = leftItems.map(item => `
-                <button id="m-left-${item.id}" onclick="selectMatchLeft('${item.id}')" class="w-full p-3.5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:border-emerald-400 font-mono-code font-black text-sm text-left transition-all">
+            const leftCol = document.getElementById('match-left-col');
+            const rightCol = document.getElementById('match-right-col');
+
+            leftCol.innerHTML = leftItems.map(item => `
+                <button id="m-left-${item.id}" onclick="selectMatchLeft('${item.id}')" class="w-full p-3.5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:border-emerald-400 text-left font-mono-code font-black text-sm text-slate-900 transition-all">
                     ${escapeHtml(item.term)}
                 </button>
             `).join('');
 
-            document.getElementById('match-right-col').innerHTML = rightItems.map(item => `
-                <button id="m-right-${item.id}" onclick="selectMatchRight('${item.id}')" class="w-full p-3.5 rounded-2xl border-2 border-slate-200 bg-white hover:border-teal-400 font-bold text-xs sm:text-sm text-left transition-all">
+            rightCol.innerHTML = rightItems.map(item => `
+                <button id="m-right-${item.id}" onclick="selectMatchRight('${item.id}')" class="w-full p-3.5 rounded-2xl border-2 border-slate-200 bg-white hover:border-teal-400 text-left font-bold text-xs sm:text-sm text-slate-700 transition-all">
                     ${escapeHtml(item.def)}
                 </button>
             `).join('');
+
+            matchStartTime = performance.now();
+            matchTimerInterval = setInterval(() => {
+                const sec = ((performance.now() - matchStartTime) / 1000).toFixed(1);
+                const sw = document.getElementById('match-stopwatch');
+                if (sw) sw.textContent = `${sec}s`;
+            }, 100);
         }
 
         function selectMatchLeft(id) {
             SoundFX.click();
             matchSelectedLeft = id;
             document.querySelectorAll('[id^="m-left-"]').forEach(btn => {
-                if (!btn.disabled) btn.classList.remove('border-emerald-600', 'bg-emerald-50');
+                if (!btn.disabled) {
+                    btn.className = btn.id === `m-left-${id}`
+                        ? 'w-full p-3.5 rounded-2xl border-2 border-emerald-600 bg-emerald-50 text-left font-mono-code font-black text-sm text-emerald-900'
+                        : 'w-full p-3.5 rounded-2xl border-2 border-slate-200 bg-slate-50 text-left font-mono-code font-black text-sm text-slate-900';
+                }
             });
-            document.getElementById(`m-left-${id}`)?.classList.add('border-emerald-600', 'bg-emerald-50');
         }
 
-        function selectMatchRight(rightId) {
+        function selectMatchRight(id) {
             if (!matchSelectedLeft) {
                 showToast('Эхлээд зүүн талын англи нэр томьёог сонгоно уу!', 'info');
                 return;
             }
-            if (matchSelectedLeft === rightId) {
+            if (matchSelectedLeft === id) {
                 SoundFX.fanfare();
-                const lBtn = document.getElementById(`m-left-${matchSelectedLeft}`);
-                const rBtn = document.getElementById(`m-right-${rightId}`);
-                if (lBtn) { lBtn.disabled = true; lBtn.className = 'w-full p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-mono-code font-black text-sm text-left opacity-70'; }
-                if (rBtn) { rBtn.disabled = true; rBtn.className = 'w-full p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold text-xs sm:text-sm text-left opacity-70'; }
+                const lBtn = document.getElementById(`m-left-${id}`);
+                const rBtn = document.getElementById(`m-right-${id}`);
+                if (lBtn) { lBtn.disabled = true; lBtn.className = 'w-full p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-left font-mono-code font-black text-sm text-emerald-800 opacity-75'; }
+                if (rBtn) { rBtn.disabled = true; rBtn.className = 'w-full p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-left font-bold text-xs sm:text-sm text-emerald-800 opacity-75'; }
                 matchSelectedLeft = null;
-                matchMatchedCount++;
-                if (matchMatchedCount >= 5) {
+                matchMatchedCount += 1;
+
+                if (matchMatchedCount === 5) {
                     clearInterval(matchTimerInterval);
-                    rewardStudent(10, 'lab', true, null, null);
+                    rewardStudent(10, 'ict', true);
                     fireConfetti();
-                    showToast('Бүх нэр томьёог амжилттай холболоо! (+10 оноо)', 'success');
+                    showToast('Бүх 5 нэр томьёог зөв холболоо! +10 GEO оноо!', 'success');
                 }
             } else {
                 SoundFX.buzzer();
-                showToast('Буруу байна, дахин оролдоорой!', 'error');
+                showToast('Буруу байна, дахин оролдоно уу.', 'error');
             }
         }
 
@@ -3574,64 +3582,63 @@
 
         function verifySpelling() {
             if (!currentSpell) return;
-            const userVal = document.getElementById('spell-answer-input').value.trim().toLowerCase();
+            const userAns = document.getElementById('spell-answer-input').value.trim().toLowerCase();
             const target = currentSpell.term.trim().toLowerCase();
-            const res = document.getElementById('spell-result-msg');
-            if (userVal === target) {
+            const msgEl = document.getElementById('spell-result-msg');
+
+            if (userAns === target) {
                 SoundFX.fanfare();
-                res.className = 'text-sm font-extrabold text-emerald-600';
-                res.textContent = `✅ Зөв байна! (${currentSpell.term}) +10 оноо`;
-                rewardStudent(10, 'lab', true, null, currentSpell.cat);
-                fireConfetti();
+                msgEl.className = 'text-sm font-black text-emerald-600';
+                msgEl.textContent = `✅ Зөв байна! (${currentSpell.term}) +5 GEO оноо`;
+                rewardStudent(5, 'ict', true);
             } else {
                 SoundFX.buzzer();
-                res.className = 'text-sm font-extrabold text-rose-600';
-                res.textContent = `❌ Буруу. Зөв бичлэг: ${currentSpell.term}`;
+                msgEl.className = 'text-sm font-black text-rose-600';
+                msgEl.textContent = `❌ Буруу байна. Зөв бичлэг: ${currentSpell.term}`;
             }
         }
 
-        /* -------------------- 11. MODULE 5: LEADERBOARD & INLINE EDIT -------------------- */
-        let editingScoreTarget = null;
-
+        /* -------------------- 11. MODULE 5: LEADERBOARD & CSV EXPORT -------------------- */
         function renderLeaderboard() {
-            const clsFilter = document.getElementById('lb-filter-class')?.value || 'ALL';
             const tbody = document.getElementById('lb-table-body');
             if (!tbody) return;
+            const filterCls = document.getElementById('lb-filter-class')?.value || 'ALL';
+            const canEdit = isTeacherAdmin();
 
-            const isTeacher = isTeacherAdmin();
-            const sorted = state.students
-                .filter(s => clsFilter === 'ALL' || s.className === clsFilter)
+            const list = [...state.students]
+                .filter(s => filterCls === 'ALL' || s.className === filterCls)
                 .sort((a, b) => getStudentTotal(b) - getStudentTotal(a));
 
-            tbody.innerHTML = sorted.map((stu, idx) => {
-                const total = getStudentTotal(stu);
-                const rankBadge = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-                const editBtn = isTeacher
-                    ? `<button onclick="openScoreEditModal('${stu.id}', 'ict')" class="ml-1.5 text-emerald-600 hover:underline text-xs font-black">✎</button>`
+            tbody.innerHTML = list.map((s, idx) => {
+                const total = getStudentTotal(s);
+                const bonus = getBonusGrade(s);
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                const editBtn = canEdit
+                    ? `<button onclick="openScoreEditModal('${s.id}')" class="ml-1.5 text-[11px] px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black">✎</button>`
                     : '';
 
                 return `
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-4 font-black text-slate-700">${rankBadge}</td>
-                        <td class="py-3.5 px-4 font-extrabold text-slate-900">${escapeHtml(stu.name)}</td>
-                        <td class="py-3.5 px-4"><span class="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-black">${escapeHtml(stu.className)}</span></td>
-                        <td class="py-3.5 px-4 font-bold text-slate-600">${stu.participation || 0}</td>
-                        <td class="py-3.5 px-4 font-bold text-slate-600">${stu.lab || 0}</td>
-                        <td class="py-3.5 px-4 font-black text-emerald-700">${stu.ict || 0}${editBtn}</td>
-                        <td class="py-3.5 px-4 font-black text-slate-900">${total}</td>
-                        <td class="py-3.5 px-4 text-right font-black text-teal-600">+${getBonusGrade(stu)}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3.5 px-4 font-black text-slate-700">${medal}</td>
+                        <td class="py-3.5 px-4 font-extrabold text-slate-900">${escapeHtml(s.name)}</td>
+                        <td class="py-3.5 px-4"><span class="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-black">${escapeHtml(s.className)}</span></td>
+                        <td class="py-3.5 px-4 font-bold text-slate-600">${s.participation || 0}</td>
+                        <td class="py-3.5 px-4 font-bold text-slate-600">${s.lab || 0}</td>
+                        <td class="py-3.5 px-4 font-black text-emerald-600">${s.ict || 0}${editBtn}</td>
+                        <td class="py-3.5 px-4 font-black text-slate-900 text-base">${total}</td>
+                        <td class="py-3.5 px-4 text-right font-black text-teal-600">+${bonus}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function openScoreEditModal(stuId, field) {
-            if (!isTeacherAdmin()) return;
+        let editingScoreStuId = null;
+        function openScoreEditModal(stuId) {
             const stu = state.students.find(s => s.id === stuId);
             if (!stu) return;
-            editingScoreTarget = { stuId, field };
+            editingScoreStuId = stuId;
             document.getElementById('sem-student').textContent = `Сурагч: ${stu.name} (${stu.className})`;
-            document.getElementById('sem-input-val').value = stu[field] || 0;
+            document.getElementById('sem-input-val').value = String(stu.ict || 0);
             const modal = document.getElementById('score-edit-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -3644,36 +3651,28 @@
         }
 
         function saveInlineScoreEdit() {
-            if (!editingScoreTarget) return;
-            const stu = state.students.find(s => s.id === editingScoreTarget.stuId);
-            if (stu) {
-                stu[editingScoreTarget.field] = parseInt(document.getElementById('sem-input-val').value, 10) || 0;
-                saveLocalState();
-                if (window.fbBridge && window.fbBridge.db) window.fbBridge.saveStudentDoc(stu).catch(() => {});
-                renderLeaderboard();
-                showToast('Оноо шинэчлэгдлээ!', 'success');
+            if (!editingScoreStuId) return;
+            const stu = state.students.find(s => s.id === editingScoreStuId);
+            if (!stu) return;
+            stu.ict = Math.max(0, parseInt(document.getElementById('sem-input-val').value, 10) || 0);
+            saveLocalState();
+            if (window.fbBridge && window.fbBridge.db) {
+                window.fbBridge.saveStudentDoc(stu).catch(() => {});
             }
             closeScoreEditModal();
+            renderLeaderboard();
+            showToast(`${stu.name}-ийн GEO оноо шинэчлэгдлээ!`, 'success');
         }
 
         function downloadAllStudentsFullReport() {
-            const header = ['Байр', 'Анги', 'Сурагчийн нэр', 'Идэвх', 'Дадлага ба Сорил', 'GEO оноо', 'Нийт оноо', 'Улирлын нэмэлт дүн', 'Оновч (%)'];
             const sorted = [...state.students].sort((a, b) => a.className.localeCompare(b.className, 'mn') || getStudentTotal(b) - getStudentTotal(a));
-            const rows = sorted.map((s, idx) => {
+            const header = ['Анги', 'Сурагчийн нэр', 'Идэвх', 'Дадлага ба Тест', 'GEO оноо', 'Нийт оноо', 'Улирлын нэмэлт дүн', 'Оновч (%)'];
+            const rows = sorted.map(s => {
+                const total = getStudentTotal(s);
                 const acc = s.totalAttempts > 0 ? Math.round((s.correctCount / s.totalAttempts) * 100) : 0;
-                return [
-                    idx + 1,
-                    s.className,
-                    `"${s.name.replace(/"/g, '""')}"`,
-                    s.participation || 0,
-                    s.lab || 0,
-                    s.ict || 0,
-                    getStudentTotal(s),
-                    `+${getBonusGrade(s)}`,
-                    `${acc}%`
-                ].join(',');
+                return [s.className, s.name, s.participation || 0, s.lab || 0, s.ict || 0, total, `+${getBonusGrade(s)}`, `${acc}%`];
             });
-            const csv = '\uFEFF' + [header.join(','), ...rows].join('\n');
+            const csv = '\uFEFF' + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -3681,26 +3680,26 @@
             a.download = `Geography_Report_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast('Газарзүйн тайлан (CSV) татагдлаа!', 'success');
+            showToast('Газарзүйн тайлан CSV файлаар татагдлаа!', 'success');
         }
 
         /* -------------------- 12. MODULE 6: QUIZ & FACT-CHECKER -------------------- */
-        let quizSubMode = 'mcq';
-        let mcqDeck = [];
-        let mcqIdx = 0;
+        let quizDeck = [];
+        let mcqIndex = 0;
         let mcqAnswered = false;
         let tfDeck = [];
-        let tfIdx = 0;
+        let tfIndex = 0;
+        let tfAnswered = false;
 
         function switchQuizMode(mode) {
             SoundFX.click();
-            quizSubMode = mode;
-            document.getElementById('quiz-box-mcq').classList.toggle('hidden', mode !== 'mcq');
-            document.getElementById('quiz-box-tf').classList.toggle('hidden', mode !== 'tf');
-            document.getElementById('qm-btn-mcq').className = mode === 'mcq'
+            const isMcq = mode === 'mcq';
+            document.getElementById('quiz-box-mcq').classList.toggle('hidden', !isMcq);
+            document.getElementById('quiz-box-tf').classList.toggle('hidden', isMcq);
+            document.getElementById('qm-btn-mcq').className = isMcq
                 ? 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-emerald-700 shadow-sm'
                 : 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-600';
-            document.getElementById('qm-btn-tf').className = mode === 'tf'
+            document.getElementById('qm-btn-tf').className = !isMcq
                 ? 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-emerald-700 shadow-sm'
                 : 'px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-slate-600';
             resetQuizDeck();
@@ -3708,182 +3707,210 @@
 
         function resetQuizDeck() {
             const topic = document.getElementById('quiz-topic-filter')?.value || 'ALL';
-            mcqDeck = (state.questions || []).filter(q => topic === 'ALL' || q.cat === topic);
-            if (!mcqDeck.length) mcqDeck = [...(state.questions || [])];
-            mcqIdx = 0;
-
-            tfDeck = (state.facts || []).filter(f => topic === 'ALL' || f.cat === topic);
-            if (!tfDeck.length) tfDeck = [...(state.facts || [])];
-            tfIdx = 0;
-
-            renderMcqCard();
-            renderTfCard();
+            quizDeck = fisherYatesShuffle((state.questions || []).filter(q => topic === 'ALL' || q.cat === topic));
+            tfDeck = fisherYatesShuffle((state.facts || []).filter(f => topic === 'ALL' || f.cat === topic));
+            mcqIndex = 0;
+            tfIndex = 0;
+            renderCurrentMcq();
+            renderCurrentTf();
         }
 
-        function renderMcqCard() {
-            if (!mcqDeck.length) return;
-            mcqAnswered = false;
-            const q = mcqDeck[mcqIdx % mcqDeck.length];
-            document.getElementById('mcq-cat-tag').textContent = q.cat;
-            document.getElementById('mcq-num-tag').textContent = `${(mcqIdx % mcqDeck.length) + 1} / ${mcqDeck.length}`;
-            document.getElementById('mcq-q-title').textContent = q.prompt;
+        function renderCurrentMcq() {
+            const qTitle = document.getElementById('mcq-q-title');
+            const optsBox = document.getElementById('mcq-opts-container');
+            const fbBox = document.getElementById('mcq-fb-box');
+            if (!qTitle || !optsBox) return;
 
-            const fb = document.getElementById('mcq-fb-box');
-            fb.classList.add('hidden');
+            fbBox.classList.add('hidden');
+            mcqAnswered = false;
+
+            if (!quizDeck.length) {
+                qTitle.textContent = 'Энэ сэдэвт бүртгэлтэй тест одоогоор алга байна.';
+                optsBox.innerHTML = '';
+                document.getElementById('mcq-num-tag').textContent = '0 / 0';
+                return;
+            }
+
+            const q = quizDeck[mcqIndex % quizDeck.length];
+            document.getElementById('mcq-cat-tag').textContent = q.cat;
+            document.getElementById('mcq-num-tag').textContent = `${(mcqIndex % quizDeck.length) + 1} / ${quizDeck.length}`;
+            qTitle.textContent = q.prompt;
 
             const letters = ['A', 'B', 'C', 'D'];
-            document.getElementById('mcq-opts-container').innerHTML = (q.options || []).map((opt, idx) => `
-                <button onclick="checkMcqChoice(${idx})" class="mcq-choice-btn w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/40 text-left font-bold text-sm flex items-center gap-3 transition-all">
-                    <span class="w-7 h-7 rounded-lg bg-white border border-slate-300 flex items-center justify-center font-black text-xs">${letters[idx]}</span>
+            optsBox.innerHTML = (q.options || []).map((opt, idx) => `
+                <button onclick="submitMcqOption(${idx})" class="mcq-opt-item w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 text-left font-bold text-sm text-slate-800 flex items-center gap-3 transition-all">
+                    <span class="w-8 h-8 rounded-xl bg-white border border-slate-300 flex items-center justify-center font-black text-xs">${letters[idx]}</span>
                     <span>${escapeHtml(opt)}</span>
                 </button>
             `).join('');
         }
 
-        function checkMcqChoice(choiceIdx) {
-            if (mcqAnswered) return;
+        function submitMcqOption(idx) {
+            if (mcqAnswered || !quizDeck.length) return;
             mcqAnswered = true;
-            const q = mcqDeck[mcqIdx % mcqDeck.length];
-            const isCorrect = Number(choiceIdx) === Number(q.ans);
-            const fb = document.getElementById('mcq-fb-box');
-            fb.classList.remove('hidden');
+            const q = quizDeck[mcqIndex % quizDeck.length];
+            const isCorrect = idx === Number(q.ans);
+            const fbBox = document.getElementById('mcq-fb-box');
 
+            document.querySelectorAll('.mcq-opt-item').forEach((btn, i) => {
+                if (i === Number(q.ans)) {
+                    btn.className = 'mcq-opt-item w-full p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-left font-black text-sm text-emerald-900 flex items-center gap-3';
+                } else if (i === idx && !isCorrect) {
+                    btn.className = 'mcq-opt-item w-full p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 text-left font-black text-sm text-rose-900 flex items-center gap-3';
+                }
+            });
+
+            fbBox.classList.remove('hidden');
             if (isCorrect) {
                 SoundFX.fanfare();
-                fb.className = 'p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-extrabold';
-                fb.textContent = `✅ Зөв хариуллаа! (+10 оноо) — ${q.explain || ''}`;
+                fbBox.className = 'p-4 rounded-2xl text-xs sm:text-sm font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200';
+                fbBox.textContent = `✅ Зөв хариуллаа! (+10 оноо) — ${q.explain || ''}`;
                 rewardStudent(10, 'lab', true, null, q.cat);
             } else {
                 SoundFX.buzzer();
-                fb.className = 'p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm font-extrabold';
-                fb.textContent = `❌ Буруу байна. ${q.explain || ''}`;
+                fbBox.className = 'p-4 rounded-2xl text-xs sm:text-sm font-extrabold bg-rose-50 text-rose-800 border border-rose-200';
+                fbBox.textContent = `❌ Буруу байна. ${q.explain || ''}`;
                 rewardStudent(0, 'lab', false, null, q.cat);
             }
         }
 
         function advanceMcq() {
             SoundFX.click();
-            mcqIdx++;
-            renderMcqCard();
+            mcqIndex += 1;
+            renderCurrentMcq();
         }
 
-        function renderTfCard() {
-            if (!tfDeck.length) return;
-            const item = tfDeck[tfIdx % tfDeck.length];
-            document.getElementById('tf-cat-tag').textContent = item.cat;
-            document.getElementById('tf-q-title').textContent = item.statement;
-            document.getElementById('tf-fb-box').classList.add('hidden');
+        function renderCurrentTf() {
+            const titleEl = document.getElementById('tf-q-title');
+            const fbBox = document.getElementById('tf-fb-box');
+            if (!titleEl) return;
+            fbBox.classList.add('hidden');
+            tfAnswered = false;
+
+            if (!tfDeck.length) {
+                titleEl.textContent = 'Энэ сэдэвт Үнэн/Худал баримт одоогоор алга байна.';
+                return;
+            }
+            const fact = tfDeck[tfIndex % tfDeck.length];
+            document.getElementById('tf-cat-tag').textContent = fact.cat;
+            titleEl.textContent = fact.statement;
         }
 
-        function submitTfChoice(userVal) {
-            if (!tfDeck.length) return;
-            const item = tfDeck[tfIdx % tfDeck.length];
-            const isCorrect = Boolean(userVal) === Boolean(item.answer);
-            const fb = document.getElementById('tf-fb-box');
-            fb.classList.remove('hidden');
+        function submitTfChoice(choice) {
+            if (tfAnswered || !tfDeck.length) return;
+            tfAnswered = true;
+            const fact = tfDeck[tfIndex % tfDeck.length];
+            const isCorrect = Boolean(choice) === Boolean(fact.answer);
+            const fbBox = document.getElementById('tf-fb-box');
+            fbBox.classList.remove('hidden');
+
             if (isCorrect) {
                 SoundFX.fanfare();
-                fb.className = 'p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold text-left';
-                fb.textContent = `✅ Яг зөв! (+10 оноо) ${item.explain}`;
-                rewardStudent(10, 'lab', true, null, item.cat);
+                fbBox.className = 'p-4 rounded-2xl text-xs sm:text-sm font-bold text-left bg-emerald-50 text-emerald-800 border border-emerald-200';
+                fbBox.textContent = `✅ Зөв! (+10 оноо) — ${fact.explain || ''}`;
+                rewardStudent(10, 'lab', true, null, fact.cat);
             } else {
                 SoundFX.buzzer();
-                fb.className = 'p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm font-bold text-left';
-                fb.textContent = `❌ Алдаатай хариулт. ${item.explain}`;
-                rewardStudent(0, 'lab', false, null, item.cat);
+                fbBox.className = 'p-4 rounded-2xl text-xs sm:text-sm font-bold text-left bg-rose-50 text-rose-800 border border-rose-200';
+                fbBox.textContent = `❌ Буруу! — ${fact.explain || ''}`;
+                rewardStudent(0, 'lab', false, null, fact.cat);
             }
         }
 
         function advanceTf() {
             SoundFX.click();
-            tfIdx++;
-            renderTfCard();
+            tfIndex += 1;
+            renderCurrentTf();
         }
 
         /* -------------------- 13. MODULE 7: GAMES (BOMB DEFUSAL & GEO SNAKE) -------------------- */
         let activeGameMode = 'bomb';
+        let bombTimeLeft = 25;
         let bombTimerInterval = null;
-        let bombSecondsLeft = 25;
         let bombActive = false;
-        let bombWinStreak = 0;
         let currentBombQuestion = null;
+        let bombStreak = 0;
+
+        function getCombinedGamePool() {
+            const gq = Array.isArray(state.gameQuestions) ? state.gameQuestions : [];
+            const tq = Array.isArray(state.questions) ? state.questions : [];
+            const validPool = [...gq, ...tq].filter(q => Array.isArray(q.options) && q.options.length >= 2);
+            return validPool.length ? validPool : DEFAULT_STATE.gameQuestions;
+        }
 
         function switchGameMode(mode) {
             SoundFX.click();
             activeGameMode = mode;
-            document.getElementById('game-view-bomb').classList.toggle('hidden', mode !== 'bomb');
-            document.getElementById('game-view-snake').classList.toggle('hidden', mode !== 'snake');
-
-            document.getElementById('gm-btn-bomb').className = mode === 'bomb'
+            const isBomb = mode === 'bomb';
+            document.getElementById('game-view-bomb').classList.toggle('hidden', !isBomb);
+            document.getElementById('game-view-snake').classList.toggle('hidden', isBomb);
+            document.getElementById('gm-btn-bomb').className = isBomb
                 ? 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-amber-400 text-slate-950 shadow'
                 : 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black text-white hover:bg-white/10';
-            document.getElementById('gm-btn-snake').className = mode === 'snake'
-                ? 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-emerald-500 text-slate-950 shadow'
+            document.getElementById('gm-btn-snake').className = !isBomb
+                ? 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-emerald-400 text-slate-950 shadow'
                 : 'px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black text-white hover:bg-white/10';
 
-            if (mode === 'bomb') {
+            if (isBomb) {
                 if (snakeLoopInterval) clearInterval(snakeLoopInterval);
                 initBombRound();
             } else {
                 if (bombTimerInterval) clearInterval(bombTimerInterval);
-                drawSnakeBoard();
+                drawSnakeFrame();
             }
         }
 
-        function getCombinedGameQuestions() {
-            const gBank = Array.isArray(state.gameQuestions) ? state.gameQuestions : [];
-            const qBank = Array.isArray(state.questions) ? state.questions : [];
-            return gBank.length ? gBank : qBank;
-        }
-
+        /* --- GAME A: BOMB DEFUSAL --- */
         function initBombRound() {
             if (bombTimerInterval) clearInterval(bombTimerInterval);
-            const pool = getCombinedGameQuestions();
-            if (!pool.length) return;
-
-            currentBombQuestion = pool[Math.floor(Math.random() * pool.length)];
-            bombSecondsLeft = 25;
+            bombTimeLeft = 25;
             bombActive = true;
-
-            document.getElementById('bomb-stage-box')?.classList.remove('animate-explode');
-            document.getElementById('bomb-outcome-box')?.classList.add('hidden');
-            document.getElementById('bomb-cat-badge').textContent = currentBombQuestion.cat || 'Газарзүй';
-            document.getElementById('bomb-q-text').textContent = currentBombQuestion.prompt;
-            document.getElementById('bomb-lcd-clock').textContent = '00:25';
-            document.getElementById('bomb-lcd-sub').textContent = 'SELECT & CUT CORRECT WIRE';
 
             for (let i = 0; i < 4; i++) {
                 document.getElementById(`w-whole-${i}`)?.classList.remove('hidden');
                 document.getElementById(`w-snip-${i}`)?.classList.add('hidden');
             }
+            document.getElementById('bomb-outcome-box')?.classList.add('hidden');
+            document.getElementById('bomb-stage-box')?.classList.remove('animate-explode');
 
-            const wireStyles = [
-                { letter: 'A', label: 'УЛААН УТАС', cls: 'border-rose-500/60 hover:bg-rose-500/20 text-rose-200' },
-                { letter: 'B', label: 'ЦЭНХЭР УТАС', cls: 'border-sky-500/60 hover:bg-sky-500/20 text-sky-200' },
-                { letter: 'C', label: 'НОГООН УТАС', cls: 'border-emerald-500/60 hover:bg-emerald-500/20 text-emerald-200' },
-                { letter: 'D', label: 'ШАР УТАС', cls: 'border-amber-500/60 hover:bg-amber-500/20 text-amber-200' }
+            const pool = getCombinedGamePool();
+            currentBombQuestion = pool[Math.floor(Math.random() * pool.length)];
+
+            document.getElementById('bomb-cat-badge').textContent = currentBombQuestion.cat || 'Газарзүй';
+            document.getElementById('bomb-q-text').textContent = currentBombQuestion.prompt;
+
+            const wireColors = [
+                { name: 'A (Улаан утас)', cls: 'border-rose-500/60 hover:bg-rose-500/20 text-rose-200' },
+                { name: 'B (Цэнхэр утас)', cls: 'border-blue-500/60 hover:bg-blue-500/20 text-blue-200' },
+                { name: 'C (Ногоон утас)', cls: 'border-emerald-500/60 hover:bg-emerald-500/20 text-emerald-200' },
+                { name: 'D (Шар утас)', cls: 'border-amber-500/60 hover:bg-amber-500/20 text-amber-200' }
             ];
 
-            document.getElementById('bomb-wire-buttons').innerHTML = (currentBombQuestion.options || []).map((opt, idx) => `
-                <button onclick="snipWire(${idx})" class="p-4 rounded-2xl bg-slate-900/90 border-2 ${wireStyles[idx].cls} text-left transition-all flex items-center gap-3">
-                    <span class="px-2.5 py-1 rounded-lg bg-white/10 font-mono-code font-black text-xs">${wireStyles[idx].letter}</span>
-                    <div>
-                        <div class="text-[10px] font-black opacity-75">${wireStyles[idx].label}</div>
-                        <div class="text-xs sm:text-sm font-bold text-white">${escapeHtml(opt)}</div>
-                    </div>
+            const btnBox = document.getElementById('bomb-wire-buttons');
+            btnBox.innerHTML = (currentBombQuestion.options || []).slice(0, 4).map((opt, idx) => `
+                <button onclick="snipWire(${idx})" class="p-4 rounded-2xl bg-slate-900 border-2 ${wireColors[idx].cls} text-left transition-all shadow">
+                    <div class="text-[11px] font-black uppercase opacity-80 mb-1">✂️ ${wireColors[idx].name}</div>
+                    <div class="text-sm font-extrabold text-white">${escapeHtml(opt)}</div>
                 </button>
             `).join('');
 
+            updateBombClockUI();
             bombTimerInterval = setInterval(() => {
                 if (!bombActive) return;
-                bombSecondsLeft--;
+                bombTimeLeft -= 1;
                 SoundFX.tick();
-                const secStr = String(Math.max(0, bombSecondsLeft)).padStart(2, '0');
-                document.getElementById('bomb-lcd-clock').textContent = `00:${secStr}`;
-                if (bombSecondsLeft <= 0) {
-                    finishBombRound(false, 'Хугацаа дууслаа!');
+                updateBombClockUI();
+                if (bombTimeLeft <= 0) {
+                    finishBombRound(false, 'Хугацаа дууслаа! Бөмбөг дэлбэрлээ.');
                 }
             }, 1000);
+        }
+
+        function updateBombClockUI() {
+            const el = document.getElementById('bomb-lcd-clock');
+            if (!el) return;
+            const s = Math.max(0, bombTimeLeft);
+            el.textContent = `00:${s < 10 ? '0' + s : s}`;
         }
 
         function snipWire(idx) {
@@ -3893,56 +3920,59 @@
             document.getElementById(`w-snip-${idx}`)?.classList.remove('hidden');
 
             const isCorrect = Number(idx) === Number(currentBombQuestion.ans);
-            finishBombRound(isCorrect, currentBombQuestion.explain || '');
+            if (isCorrect) {
+                finishBombRound(true, `Зөв утсыг хайчиллаа! (+15 GEO оноо) — ${currentBombQuestion.explain || ''}`);
+            } else {
+                finishBombRound(false, `Буруу утас хайчиллаа! Зөв хариулт: ${currentBombQuestion.options[currentBombQuestion.ans]}`);
+            }
         }
 
-        function finishBombRound(isDefused, detailText) {
+        function finishBombRound(won, desc) {
             bombActive = false;
-            if (bombTimerInterval) clearInterval(bombTimerInterval);
-
+            clearInterval(bombTimerInterval);
             const outBox = document.getElementById('bomb-outcome-box');
             const outTitle = document.getElementById('bomb-outcome-title');
             const outDesc = document.getElementById('bomb-outcome-desc');
             outBox.classList.remove('hidden');
 
-            if (isDefused) {
+            if (won) {
                 SoundFX.fanfare();
                 fireConfetti();
-                bombWinStreak++;
-                document.getElementById('bomb-win-streak').textContent = String(bombWinStreak);
-                document.getElementById('bomb-lcd-sub').textContent = 'BOMB DEFUSED SAFELY';
-                outBox.className = 'p-5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/80 text-emerald-200 text-center space-y-2';
-                outTitle.textContent = '🛡️ АМЖИЛТТАЙ АЮУЛГҮЙ БОЛГОЛОО! (+15 GEO)';
-                outDesc.textContent = detailText;
-                rewardStudent(15, 'ict', true, null, currentBombQuestion?.cat || null);
+                bombStreak += 1;
+                document.getElementById('bomb-win-streak').textContent = String(bombStreak);
+                outBox.className = 'p-5 rounded-2xl border-2 border-emerald-400 bg-emerald-950/90 text-center space-y-2';
+                outTitle.className = 'text-2xl font-black text-emerald-400';
+                outTitle.textContent = '🛡️ BOMB DEFUSED!';
+                outDesc.textContent = desc;
+                rewardStudent(15, 'ict', true, null, currentBombQuestion?.cat);
             } else {
                 SoundFX.buzzer();
-                bombWinStreak = 0;
+                bombStreak = 0;
                 document.getElementById('bomb-win-streak').textContent = '0';
-                document.getElementById('bomb-lcd-sub').textContent = 'DETONATED!';
                 document.getElementById('bomb-stage-box')?.classList.add('animate-explode');
-                outBox.className = 'p-5 rounded-2xl border-2 border-rose-500 bg-rose-950/85 text-rose-200 text-center space-y-2';
-                outTitle.textContent = '💥 ДЭЛБЭРЛЭЭ!';
-                outDesc.textContent = detailText;
-                rewardStudent(0, 'ict', false, null, currentBombQuestion?.cat || null);
+                outBox.className = 'p-5 rounded-2xl border-2 border-rose-500 bg-rose-950/90 text-center space-y-2';
+                outTitle.className = 'text-2xl font-black text-rose-400';
+                outTitle.textContent = '💥 DETONATED!';
+                outDesc.textContent = desc;
+                rewardStudent(0, 'ict', false, null, currentBombQuestion?.cat);
             }
         }
 
-        /* --- GEO SNAKE GAME --- */
+        /* --- GAME B: GEO SNAKE --- */
         const SNAKE_GRID = 18;
         const SNAKE_CELL = 24;
         let snakeBody = [{ x: 8, y: 9 }, { x: 7, y: 9 }, { x: 6, y: 9 }];
         let snakeDir = { x: 1, y: 0 };
         let snakeNextDir = { x: 1, y: 0 };
-        let snakeFood = { x: 13, y: 9 };
+        let snakeApple = { x: 12, y: 9 };
         let snakeStar = null;
         let snakeScore = 0;
-        let snakeHighScore = 0;
-        let snakeOrbsEaten = 0;
+        let snakeHigh = 0;
+        let snakeApplesEaten = 0;
         let snakeLoopInterval = null;
         let snakePausedForQuiz = false;
         let snakeRunning = false;
-        let activeSnakeQuiz = null;
+        let activeSnakeStarQ = null;
 
         function startSnakeGame() {
             SoundFX.click();
@@ -3951,249 +3981,237 @@
             snakeDir = { x: 1, y: 0 };
             snakeNextDir = { x: 1, y: 0 };
             snakeScore = 0;
-            snakeOrbsEaten = 0;
+            snakeApplesEaten = 0;
             snakeStar = null;
             snakePausedForQuiz = false;
             snakeRunning = true;
 
             document.getElementById('snake-score-val').textContent = '0';
-            document.getElementById('snake-overlay').classList.add('hidden');
-            document.getElementById('snake-bonus-q-card').classList.add('hidden');
+            document.getElementById('snake-overlay')?.classList.add('hidden');
+            document.getElementById('snake-bonus-q-card')?.classList.add('hidden');
 
-            spawnSnakeFood();
-            drawSnakeBoard();
+            spawnSnakeApple();
+            drawSnakeFrame();
             snakeLoopInterval = setInterval(stepSnakeLoop, 145);
         }
 
         function setSnakeDir(dx, dy) {
-            if (snakeDir.x + dx === 0 && snakeDir.y + dy === 0) return;
+            if (dx === -snakeDir.x && dy === -snakeDir.y) return;
             snakeNextDir = { x: dx, y: dy };
         }
 
-        document.addEventListener('keydown', (e) => {
-            if (activeModule !== 'games' || activeGameMode !== 'snake' || !snakeRunning) return;
-            const k = e.key.toLowerCase();
-            if (k === 'arrowup' || k === 'w') { e.preventDefault(); setSnakeDir(0, -1); }
-            if (k === 'arrowdown' || k === 's') { e.preventDefault(); setSnakeDir(0, 1); }
-            if (k === 'arrowleft' || k === 'a') { e.preventDefault(); setSnakeDir(-1, 0); }
-            if (k === 'arrowright' || k === 'd') { e.preventDefault(); setSnakeDir(1, 0); }
-        });
-
-        function spawnSnakeFood() {
-            while (true) {
-                const fx = Math.floor(Math.random() * SNAKE_GRID);
-                const fy = Math.floor(Math.random() * SNAKE_GRID);
-                if (!snakeBody.some(seg => seg.x === fx && seg.y === fy)) {
-                    snakeFood = { x: fx, y: fy };
-                    break;
-                }
-            }
+        function spawnSnakeApple() {
+            let pos;
+            do {
+                pos = {
+                    x: Math.floor(Math.random() * SNAKE_GRID),
+                    y: Math.floor(Math.random() * SNAKE_GRID)
+                };
+            } while (snakeBody.some(seg => seg.x === pos.x && seg.y === pos.y));
+            snakeApple = pos;
         }
 
         function spawnSnakeStar() {
-            while (true) {
-                const sx = Math.floor(Math.random() * SNAKE_GRID);
-                const sy = Math.floor(Math.random() * SNAKE_GRID);
-                if (!snakeBody.some(seg => seg.x === sx && seg.y === sy) && (sx !== snakeFood.x || sy !== snakeFood.y)) {
-                    snakeStar = { x: sx, y: sy };
-                    break;
-                }
-            }
+            let pos;
+            do {
+                pos = {
+                    x: Math.floor(Math.random() * SNAKE_GRID),
+                    y: Math.floor(Math.random() * SNAKE_GRID)
+                };
+            } while (
+                snakeBody.some(seg => seg.x === pos.x && seg.y === pos.y) ||
+                (pos.x === snakeApple.x && pos.y === snakeApple.y)
+            );
+            snakeStar = pos;
         }
 
         function stepSnakeLoop() {
             if (!snakeRunning || snakePausedForQuiz) return;
             snakeDir = { ...snakeNextDir };
-            const head = { x: snakeBody[0].x + snakeDir.x, y: snakeBody[0].y + snakeDir.y };
+            const head = {
+                x: snakeBody[0].x + snakeDir.x,
+                y: snakeBody[0].y + snakeDir.y
+            };
 
-            if (head.x < 0 || head.x >= SNAKE_GRID || head.y < 0 || head.y >= SNAKE_GRID ||
-                snakeBody.some(seg => seg.x === head.x && seg.y === head.y)) {
+            if (
+                head.x < 0 || head.x >= SNAKE_GRID ||
+                head.y < 0 || head.y >= SNAKE_GRID ||
+                snakeBody.some(seg => seg.x === head.x && seg.y === head.y)
+            ) {
                 endSnakeGame();
                 return;
             }
 
             snakeBody.unshift(head);
 
-            if (head.x === snakeFood.x && head.y === snakeFood.y) {
+            if (head.x === snakeApple.x && head.y === snakeApple.y) {
                 SoundFX.tick();
                 snakeScore += 10;
-                snakeOrbsEaten++;
+                snakeApplesEaten += 1;
+                if (snakeScore > snakeHigh) snakeHigh = snakeScore;
                 document.getElementById('snake-score-val').textContent = String(snakeScore);
-                if (snakeScore > snakeHighScore) {
-                    snakeHighScore = snakeScore;
-                    document.getElementById('snake-high-val').textContent = String(snakeHighScore);
-                }
-                if (snakeOrbsEaten % 2 === 0) {
-                    rewardStudent(5, 'ict', true, null, null);
+                document.getElementById('snake-high-val').textContent = String(snakeHigh);
+
+                if (snakeApplesEaten % 2 === 0) {
+                    rewardStudent(5, 'ict', true);
                     showToast('🐍 +5 GEO оноо нэмэгдлээ!', 'success');
                 }
-                if (snakeOrbsEaten % 3 === 0 && !snakeStar) {
+                if (snakeApplesEaten % 3 === 0 && !snakeStar) {
                     spawnSnakeStar();
                 }
-                spawnSnakeFood();
+                spawnSnakeApple();
             } else if (snakeStar && head.x === snakeStar.x && head.y === snakeStar.y) {
                 SoundFX.turbo();
                 snakeStar = null;
-                triggerSnakeBonusQuestion();
+                triggerSnakeStarQuestion();
             } else {
                 snakeBody.pop();
             }
 
-            drawSnakeBoard();
+            drawSnakeFrame();
         }
 
-        function triggerSnakeBonusQuestion() {
-            const pool = getCombinedGameQuestions();
-            if (!pool.length) return;
+        function triggerSnakeStarQuestion() {
             snakePausedForQuiz = true;
-            activeSnakeQuiz = pool[Math.floor(Math.random() * pool.length)];
+            const pool = getCombinedGamePool();
+            activeSnakeStarQ = pool[Math.floor(Math.random() * pool.length)];
 
             const card = document.getElementById('snake-bonus-q-card');
             card.classList.remove('hidden');
-            document.getElementById('snake-bq-cat').textContent = activeSnakeQuiz.cat || 'Газарзүй';
-            document.getElementById('snake-bq-prompt').textContent = activeSnakeQuiz.prompt;
+            document.getElementById('snake-bq-cat').textContent = activeSnakeStarQ.cat || 'Газарзүй';
+            document.getElementById('snake-bq-prompt').textContent = activeSnakeStarQ.prompt;
 
-            const letters = ['A', 'B', 'C', 'D'];
-            document.getElementById('snake-bq-options').innerHTML = (activeSnakeQuiz.options || []).map((opt, idx) => `
-                <button onclick="answerSnakeBonusQuiz(${idx})" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-amber-400 hover:text-slate-950 border border-amber-400/40 text-left text-xs font-extrabold transition-all">
-                    ${letters[idx]}) ${escapeHtml(opt)}
+            const optsBox = document.getElementById('snake-bq-options');
+            optsBox.innerHTML = (activeSnakeStarQ.options || []).map((opt, idx) => `
+                <button onclick="answerSnakeStarQuestion(${idx})" class="w-full p-2.5 rounded-xl bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-left text-xs font-extrabold text-white transition-all">
+                    ${['A', 'B', 'C', 'D'][idx]}) ${escapeHtml(opt)}
                 </button>
             `).join('');
         }
 
-        function answerSnakeBonusQuiz(idx) {
-            if (!activeSnakeQuiz) return;
-            const isCorrect = Number(idx) === Number(activeSnakeQuiz.ans);
-            document.getElementById('snake-bonus-q-card').classList.add('hidden');
+        function answerSnakeStarQuestion(idx) {
+            if (!activeSnakeStarQ) return;
+            const isCorrect = Number(idx) === Number(activeSnakeStarQ.ans);
+            document.getElementById('snake-bonus-q-card')?.classList.add('hidden');
             snakePausedForQuiz = false;
 
             if (isCorrect) {
                 SoundFX.fanfare();
                 fireConfetti();
                 snakeScore += 30;
+                if (snakeScore > snakeHigh) snakeHigh = snakeScore;
                 document.getElementById('snake-score-val').textContent = String(snakeScore);
-                rewardStudent(15, 'ict', true, null, activeSnakeQuiz.cat || null);
-                showToast('⭐ Зөв хариуллаа! +15 GEO оноо!', 'success');
+                document.getElementById('snake-high-val').textContent = String(snakeHigh);
+                rewardStudent(15, 'ict', true, null, activeSnakeStarQ.cat);
+                showToast('⭐ Алтан одны асуултад зөв хариуллаа! +15 GEO оноо!', 'success');
             } else {
                 SoundFX.buzzer();
-                rewardStudent(0, 'ict', false, null, activeSnakeQuiz.cat || null);
-                showToast('❌ Алтан одны асуултад алдлаа!', 'error');
+                rewardStudent(0, 'ict', false, null, activeSnakeStarQ.cat);
+                showToast(`Буруу хариуллаа. Зөв нь: ${activeSnakeStarQ.options[activeSnakeStarQ.ans]}`, 'error');
             }
-            activeSnakeQuiz = null;
+            activeSnakeStarQ = null;
         }
 
         function endSnakeGame() {
             snakeRunning = false;
-            if (snakeLoopInterval) clearInterval(snakeLoopInterval);
+            clearInterval(snakeLoopInterval);
             SoundFX.buzzer();
-            const ov = document.getElementById('snake-overlay');
-            ov.classList.remove('hidden');
-            document.getElementById('snake-overlay-title').textContent = `Тоглоом дууслаа! Оноо: ${snakeScore}`;
-            document.getElementById('snake-overlay-desc').textContent = 'Дахин тоглож газарзүйн GEO оноогоо ахиулаарай!';
+            const overlay = document.getElementById('snake-overlay');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                document.getElementById('snake-overlay-title').textContent = `Тоглоом дууслаа! Оноо: ${snakeScore}`;
+                document.getElementById('snake-overlay-desc').textContent = 'Дахин тоглож илүү олон GEO оноо цуглуулаарай!';
+            }
         }
 
-        function drawSnakeBoard() {
+        function drawSnakeFrame() {
             const canvas = document.getElementById('snake-canvas');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Food orb
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
-            ctx.arc(snakeFood.x * SNAKE_CELL + SNAKE_CELL / 2, snakeFood.y * SNAKE_CELL + SNAKE_CELL / 2, 8, 0, Math.PI * 2);
+            ctx.arc(
+                snakeApple.x * SNAKE_CELL + SNAKE_CELL / 2,
+                snakeApple.y * SNAKE_CELL + SNAKE_CELL / 2,
+                9, 0, Math.PI * 2
+            );
             ctx.fill();
 
-            // Golden star
             if (snakeStar) {
                 ctx.fillStyle = '#fbbf24';
                 ctx.beginPath();
-                ctx.arc(snakeStar.x * SNAKE_CELL + SNAKE_CELL / 2, snakeStar.y * SNAKE_CELL + SNAKE_CELL / 2, 10, 0, Math.PI * 2);
+                ctx.arc(
+                    snakeStar.x * SNAKE_CELL + SNAKE_CELL / 2,
+                    snakeStar.y * SNAKE_CELL + SNAKE_CELL / 2,
+                    10, 0, Math.PI * 2
+                );
                 ctx.fill();
             }
 
-            // Snake segments
             snakeBody.forEach((seg, idx) => {
                 ctx.fillStyle = idx === 0 ? '#34d399' : '#059669';
                 ctx.fillRect(seg.x * SNAKE_CELL + 2, seg.y * SNAKE_CELL + 2, SNAKE_CELL - 4, SNAKE_CELL - 4);
             });
         }
 
-        /* -------------------- 14. MODULE 8: ANALYTICS & REPORTS -------------------- */
+        document.addEventListener('keydown', (e) => {
+            if (activeModule !== 'games' || activeGameMode !== 'snake') return;
+            const key = e.key.toLowerCase();
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) e.preventDefault();
+            if (key === 'arrowup' || key === 'w') setSnakeDir(0, -1);
+            if (key === 'arrowdown' || key === 's') setSnakeDir(0, 1);
+            if (key === 'arrowleft' || key === 'a') setSnakeDir(-1, 0);
+            if (key === 'arrowright' || key === 'd') setSnakeDir(1, 0);
+        });
+
+        /* -------------------- 14. MODULE 8: ANALYTICS -------------------- */
         function renderAnalytics() {
             document.getElementById('an-views').textContent = state.analytics.views || 1;
             document.getElementById('an-students').textContent = state.students.length;
 
-            const totalPts = state.students.reduce((sum, s) => sum + getStudentTotal(s), 0);
+            const totalPts = state.students.reduce((acc, s) => acc + getStudentTotal(s), 0);
+            const totalCorrect = state.students.reduce((acc, s) => acc + (Number(s.correctCount) || 0), 0);
+            const totalAttempts = state.students.reduce((acc, s) => acc + (Number(s.totalAttempts) || 0), 0);
+            const accPct = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+
             document.getElementById('an-total-pts').textContent = totalPts;
+            document.getElementById('an-accuracy').textContent = `${accPct}%`;
 
-            const totalCorrect = state.students.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
-            const totalAttempts = state.students.reduce((sum, s) => sum + (Number(s.totalAttempts) || 0), 0);
-            const acc = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
-            document.getElementById('an-accuracy').textContent = `${acc}%`;
-
-            // Class comparisons
             const clsBox = document.getElementById('an-class-comparison');
             if (clsBox) {
                 clsBox.innerHTML = (state.classes || []).map(cls => {
                     const members = state.students.filter(s => s.className === cls);
-                    const avg = members.length
-                        ? Math.round(members.reduce((sum, s) => sum + getStudentTotal(s), 0) / members.length)
-                        : 0;
-                    const pct = Math.min(100, Math.round((avg / 120) * 100));
+                    const clsPts = members.reduce((acc, s) => acc + getStudentTotal(s), 0);
+                    const avg = members.length ? (clsPts / members.length).toFixed(1) : '0.0';
+                    const barW = Math.min(100, Math.round((Number(avg) / 100) * 100));
                     return `
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-xs font-extrabold">
+                        <div>
+                            <div class="flex justify-between text-xs font-extrabold mb-1">
                                 <span>${escapeHtml(cls)} анги (${members.length} сурагч)</span>
-                                <span class="text-emerald-700">Дундаж: ${avg} оноо</span>
+                                <span class="text-emerald-700">Нийт: ${clsPts} | Дундаж: ${avg}</span>
+                            </div>
+                            <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-600 rounded-full" style="width: ${barW}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const topicBox = document.getElementById('an-topic-mastery');
+            if (topicBox) {
+                topicBox.innerHTML = (state.topics || []).map(t => {
+                    const st = state.analytics.topicStats?.[t] || { correct: 0, total: 0 };
+                    const pct = st.total > 0 ? Math.round((st.correct / st.total) * 100) : 0;
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-extrabold mb-1">
+                                <span>${escapeHtml(t)}</span>
+                                <span class="text-teal-700">${pct}% (${st.correct}/${st.total})</span>
                             </div>
                             <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-600 rounded-full" style="width: ${pct}%"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // Topic mastery
-            const topBox = document.getElementById('an-topic-mastery');
-            if (topBox) {
-                topBox.innerHTML = (state.topics || []).map(t => {
-                    const st = state.analytics.topicStats?.[t] || { correct: 0, total: 0 };
-                    const tAcc = st.total > 0 ? Math.round((st.correct / st.total) * 100) : 0;
-                    return `
-                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-bold">
-                            <span class="text-slate-800">${escapeHtml(t)}</span>
-                            <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-black">${tAcc}% (${st.correct}/${st.total})</span>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // Module usage
-            const modNames = {
-                wheel: '🎡 Давхар хүрд',
-                teamgen: '🎲 Баг хуваагч',
-                jeopardy: '🔔 Алтан хонх',
-                keywords: '🧊 Нэр томьёо',
-                leaderboard: '🏆 Онооны самбар',
-                quiz: '✅ Тест & Үнэн/Худал',
-                games: '🎮 Тоглоомууд'
-            };
-            const modBox = document.getElementById('an-module-bars');
-            if (modBox) {
-                const usage = state.analytics.moduleUsage || {};
-                const maxVal = Math.max(1, ...Object.values(usage));
-                modBox.innerHTML = Object.entries(modNames).map(([k, label]) => {
-                    const count = usage[k] || 0;
-                    const pct = Math.round((count / maxVal) * 100);
-                    return `
-                        <div class="space-y-1">
-                            <div class="flex justify-between text-xs font-bold">
-                                <span>${label}</span>
-                                <span>${count} удаа</span>
-                            </div>
-                            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <div class="h-full bg-teal-500 rounded-full" style="width: ${pct}%"></div>
                             </div>
                         </div>
@@ -4201,23 +4219,52 @@
                 }).join('');
             }
 
-            // Live Activity Stream
-            const feedBox = document.getElementById('an-activity-feed');
-            if (feedBox) {
+            const modBox = document.getElementById('an-module-bars');
+            if (modBox) {
+                const modNames = {
+                    wheel: '🎡 Давхар хүрд',
+                    teamgen: '🎲 Баг хуваагч',
+                    jeopardy: '🔔 Алтан хонх',
+                    keywords: '🧊 Нэр томьёо',
+                    leaderboard: '🏆 Онооны самбар',
+                    quiz: '✅ Тест & Үнэн/Худал',
+                    games: '🎮 Тоглоомууд'
+                };
+                const usage = state.analytics.moduleUsage || {};
+                const maxU = Math.max(1, ...Object.values(usage));
+                modBox.innerHTML = Object.entries(modNames).map(([k, label]) => {
+                    const val = usage[k] || 0;
+                    const pct = Math.round((val / maxU) * 100);
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-extrabold mb-1">
+                                <span>${label}</span>
+                                <span>${val} удаа</span>
+                            </div>
+                            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-amber-500 rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const feed = document.getElementById('an-activity-feed');
+            if (feed) {
                 const logs = state.analytics.logs || [];
-                feedBox.innerHTML = logs.length
-                    ? logs.map(l => `<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-2"><span class="font-semibold text-slate-800">${escapeHtml(l.text)}</span><span class="text-slate-400 font-mono-code shrink-0">${escapeHtml(l.time)}</span></div>`).join('')
-                    : '<div class="text-slate-400 text-center py-6">Одоогоор үйл ажиллагааны түүх алга</div>';
+                feed.innerHTML = logs.length
+                    ? logs.map(l => `<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex justify-between"><span>${escapeHtml(l.text)}</span><span class="text-slate-400 font-mono-code">${escapeHtml(l.time)}</span></div>`).join('')
+                    : '<div class="text-slate-400">Одоогоор үйл ажиллагааны түүх хоосон байна.</div>';
             }
         }
 
-        /* -------------------- 15. MODULE 9: TEACHER ADMIN PANEL -------------------- */
-        let activeAdminSub = 'students';
-        let activeQuestionBankTarget = 'wheel';
+        /* -------------------- 15. MODULE 9: TEACHER ADMIN CONTROL CENTER -------------------- */
+        let currentAdminSub = 'students';
+        let currentQBankTarget = 'wheel';
 
         function switchAdminSub(sub) {
             SoundFX.click();
-            activeAdminSub = sub;
+            currentAdminSub = sub;
             ['students', 'topics', 'questions', 'jeopardy', 'keywords', 'security'].forEach(k => {
                 document.getElementById(`adm-view-${k}`)?.classList.toggle('hidden', k !== sub);
                 const btn = document.getElementById(`adm-tab-${k}`);
@@ -4230,26 +4277,137 @@
             renderAdminLists();
         }
 
-        /* --- Dynamic Class Management (Add / Rename / Delete) --- */
+        function renderAdminLists() {
+            syncClassDropdowns();
+            syncTopicDropdowns();
+
+            // 1. Dynamic Class Chips with Edit & Delete
+            const classChipsBox = document.getElementById('adm-class-chips');
+            if (classChipsBox) {
+                classChipsBox.innerHTML = (state.classes || []).map(cls => {
+                    const count = state.students.filter(s => s.className === cls).length;
+                    return `
+                        <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white border-2 border-emerald-200 shadow-2xs">
+                            <span class="font-black text-sm text-emerald-950">${escapeHtml(cls)}</span>
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">${count} сурагч</span>
+                            <button onclick="openClassEditModal('${escapeHtml(cls)}')" title="Ангийн нэр засах" class="p-1 rounded-lg hover:bg-emerald-50 text-emerald-700 text-xs font-black">✎</button>
+                            ${(state.classes || []).length > 1
+                                ? `<button onclick="openClassDeleteModal('${escapeHtml(cls)}')" title="Анги устгах" class="p-1 rounded-lg hover:bg-rose-50 text-rose-600 text-xs font-black">✕</button>`
+                                : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // 2. Registered Students List
+            const stuListBox = document.getElementById('adm-stu-list');
+            const filterCls = document.getElementById('adm-stu-filter-class')?.value || 'ALL';
+            const searchQ = (document.getElementById('adm-stu-search')?.value || '').trim().toLowerCase();
+
+            const filteredStudents = state.students
+                .filter(s => (filterCls === 'ALL' || s.className === filterCls) && (!searchQ || s.name.toLowerCase().includes(searchQ)))
+                .sort((a, b) => a.className.localeCompare(b.className, 'mn') || a.name.localeCompare(b.name, 'mn'));
+
+            const totalStuSpan = document.getElementById('adm-stu-total-count');
+            if (totalStuSpan) totalStuSpan.textContent = String(filteredStudents.length);
+
+            if (stuListBox) {
+                stuListBox.innerHTML = filteredStudents.length
+                    ? filteredStudents.map(s => `
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">${escapeHtml(s.className)}</span>
+                                    <span class="font-extrabold text-xs text-slate-900 truncate">${escapeHtml(s.name)}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 font-mono-code mt-1">
+                                    🔑 Нууц үг: <strong>${escapeHtml(s.password || '1234')}</strong> • Нийт: <strong>${getStudentTotal(s)}</strong>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="openTeacherResetPwModal('${s.id}')" title="Нууц үг сэргээх" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-black">🔑</button>
+                                <button onclick="openStudentEditModal('${s.id}')" title="Засах" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-black">✎</button>
+                                <button onclick="deleteAdminStudent('${s.id}')" title="Устгах" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-black">✕</button>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<div class="col-span-full text-center py-6 text-xs text-slate-400">Сурагч олдсонгүй.</div>';
+            }
+
+            // 3. Topics List
+            const topicsBox = document.getElementById('adm-topics-list');
+            if (topicsBox) {
+                topicsBox.innerHTML = (state.topics || []).map(t => `
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                        <span class="font-extrabold text-xs text-slate-900">${escapeHtml(t)}</span>
+                        <div class="flex gap-1">
+                            <button onclick="openTopicEditModal('${escapeHtml(t)}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black">✎</button>
+                            ${(state.topics || []).length > 1 ? `<button onclick="deleteAdminTopic('${escapeHtml(t)}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black">✕</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 4. Question Banks
+            document.getElementById('qbank-count-wheel').textContent = String((state.wheelQuestions || []).length);
+            document.getElementById('qbank-count-test').textContent = String((state.questions || []).length);
+            document.getElementById('qbank-count-tf').textContent = String((state.facts || []).length);
+            document.getElementById('qbank-count-game').textContent = String((state.gameQuestions || []).length);
+            renderAdminQuestionList();
+
+            // 5. Jeopardy Editor
+            renderAdminJeopardyEditor();
+
+            // 6. Keywords List
+            const kwList = document.getElementById('adm-keywords-list');
+            document.getElementById('adm-kw-total-count').textContent = String((state.keywords || []).length);
+            if (kwList) {
+                kwList.innerHTML = (state.keywords || []).map(k => `
+                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                        <div>
+                            <div class="font-mono-code font-black text-xs text-emerald-800">${escapeHtml(k.term)} <span class="text-[10px] font-sans text-slate-400">(${escapeHtml(k.cat)})</span></div>
+                            <div class="text-xs text-slate-700 font-semibold">${escapeHtml(k.def)}</div>
+                        </div>
+                        <div class="flex gap-1 shrink-0">
+                            <button onclick="editAdminKeyword('${k.id}')" class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-black">✎</button>
+                            <button onclick="deleteAdminKeyword('${k.id}')" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-xs font-black">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 7. Security & Visibility button
+            const visBtn = document.getElementById('adm-toggle-stu-scores');
+            if (visBtn) {
+                visBtn.textContent = state.showScoresToStudents ? 'Нээлттэй (Сурагчид харна)' : 'Хаалттай (Нууцлагдсан)';
+                visBtn.className = state.showScoresToStudents
+                    ? 'px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-extrabold shrink-0'
+                    : 'px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-extrabold shrink-0';
+            }
+            const divInp = document.getElementById('adm-bonus-divisor');
+            if (divInp) divInp.value = String(state.bonusDivisor || 25);
+        }
+
+        /* --- Class Add / Edit / Delete Handlers --- */
         function adminAddClass() {
             const inp = document.getElementById('adm-new-class-input');
-            const val = (inp?.value || '').trim().toUpperCase();
-            if (!val) {
-                showToast('Шинэ ангийн нэрийг оруулна уу (жнь: 8B)!', 'error');
+            const newCls = (inp?.value || '').trim().toUpperCase();
+            if (!newCls) {
+                showToast('Шинэ ангийн нэрийг оруулна уу! (жнь: 8A)', 'error');
                 return;
             }
             if (!state.classes) state.classes = [];
-            if (state.classes.includes(val)) {
-                showToast(`${val} анги аль хэдийн бүртгэгдсэн байна!`, 'error');
+            if (state.classes.includes(newCls)) {
+                showToast(`«${newCls}» анги аль хэдийн бүртгэгдсэн байна!`, 'error');
                 return;
             }
-            state.classes.push(val);
+            state.classes.push(newCls);
             inp.value = '';
             saveState(true);
             syncClassDropdowns();
             renderAdminLists();
             SoundFX.fanfare();
-            showToast(`🏫 ${val} анги амжилттай нэмэгдлээ!`, 'success');
+            showToast(`🏫 «${newCls}» анги амжилттай нэмэгдлээ!`, 'success');
         }
 
         function openClassEditModal(clsName) {
@@ -4258,7 +4416,6 @@
             const modal = document.getElementById('class-edit-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            setTimeout(() => document.getElementById('cem-new-name')?.focus(), 100);
         }
 
         function closeClassEditModal() {
@@ -4267,43 +4424,49 @@
             modal.classList.remove('flex');
         }
 
-        function saveClassRename() {
-            const oldName = document.getElementById('cem-old-name').value;
-            const newName = (document.getElementById('cem-new-name').value || '').trim().toUpperCase();
-            if (!newName) return;
-            if (oldName !== newName && state.classes.includes(newName)) {
-                showToast(`${newName} нэртэй анги аль хэдийн байна!`, 'error');
+        async function saveClassRename() {
+            const oldCls = document.getElementById('cem-old-name').value;
+            const newCls = document.getElementById('cem-new-name').value.trim().toUpperCase();
+            if (!newCls || oldCls === newCls) {
+                closeClassEditModal();
                 return;
             }
-            state.classes = state.classes.map(c => (c === oldName ? newName : c));
-            state.students.forEach(stu => {
-                if (stu.className === oldName) {
-                    stu.className = newName;
-                    if (window.fbBridge && window.fbBridge.db) {
-                        window.fbBridge.saveStudentDoc(stu, oldName).catch(() => {});
-                    }
-                }
-            });
-            if (window.fbBridge && window.fbBridge.db && oldName !== newName) {
-                window.fbBridge.deleteClassDoc(oldName).catch(() => {});
+            if (state.classes.includes(newCls)) {
+                showToast(`«${newCls}» нэртэй анги аль хэдийн байна!`, 'error');
+                return;
             }
+
+            const idx = state.classes.indexOf(oldCls);
+            if (idx !== -1) state.classes[idx] = newCls;
+
+            const affected = state.students.filter(s => s.className === oldCls);
+            for (const s of affected) {
+                s.className = newCls;
+                if (window.fbBridge && window.fbBridge.db) {
+                    await window.fbBridge.saveStudentDoc(s, oldCls).catch(() => {});
+                }
+            }
+            if (window.fbBridge && window.fbBridge.db) {
+                await window.fbBridge.deleteClassDoc(oldCls).catch(() => {});
+            }
+
             saveState(true);
-            syncClassDropdowns();
-            renderAdminLists();
             closeClassEditModal();
-            SoundFX.fanfare();
-            showToast(`Ангийн нэр «${newName}» болж шинэчлэгдлээ!`, 'success');
+            syncClassDropdowns();
+            populateLoginStudentDropdown();
+            renderAdminLists();
+            showToast(`Ангийн нэр «${oldCls}» → «${newCls}» болж шинэчлэгдлээ!`, 'success');
         }
 
         function openClassDeleteModal(clsName) {
-            if (state.classes.length <= 1) {
-                showToast('Хамгийн багадаа 1 анги үлдэх ёстой!', 'error');
+            if ((state.classes || []).length <= 1) {
+                showToast('Хамгийн багадаа 1 анги үлдэх ёстой.', 'error');
                 return;
             }
             const count = state.students.filter(s => s.className === clsName).length;
             document.getElementById('cdm-class-name').value = clsName;
             document.getElementById('cdm-message').textContent = count > 0
-                ? `«${clsName}» анги болон тус ангид бүртгэлтэй ${count} сурагчийг бүрмөсөн устгах уу?`
+                ? `«${clsName}» ангид бүртгэлтэй ${count} сурагч байна. Ангийг устгавал эдгээр сурагчид мөн устах болно. Үргэлжлүүлэх үү?`
                 : `«${clsName}» ангийг устгах уу?`;
             const modal = document.getElementById('class-delete-modal');
             modal.classList.remove('hidden');
@@ -4316,42 +4479,36 @@
             modal.classList.remove('flex');
         }
 
-        function confirmClassDelete() {
+        async function confirmClassDelete() {
             const clsName = document.getElementById('cdm-class-name').value;
-            if (!clsName || state.classes.length <= 1) return;
-
-            const toDelete = state.students.filter(s => s.className === clsName);
-            toDelete.forEach(stu => {
-                if (window.fbBridge && window.fbBridge.db) {
-                    window.fbBridge.deleteStudentDoc(stu.id, clsName).catch(() => {});
-                }
-            });
+            state.classes = (state.classes || []).filter(c => c !== clsName);
+            const toRemove = state.students.filter(s => s.className === clsName);
             state.students = state.students.filter(s => s.className !== clsName);
-            state.classes = state.classes.filter(c => c !== clsName);
 
             if (window.fbBridge && window.fbBridge.db) {
-                window.fbBridge.deleteClassDoc(clsName).catch(() => {});
+                for (const s of toRemove) {
+                    await window.fbBridge.deleteStudentDoc(s.id, clsName).catch(() => {});
+                }
+                await window.fbBridge.deleteClassDoc(clsName).catch(() => {});
             }
 
             saveState(true);
-            syncClassDropdowns();
-            renderAdminLists();
             closeClassDeleteModal();
+            syncClassDropdowns();
+            populateLoginStudentDropdown();
+            renderAdminLists();
             showToast(`«${clsName}» анги устгагдлаа.`, 'info');
         }
 
-        /* --- Single, Bulk & CSV/TXT Student Registration --- */
-        function adminAddSingleStudent() {
+        /* --- Student Registration, Edit, Reset Password, Clear --- */
+        async function adminAddSingleStudent() {
             const cls = document.getElementById('adm-single-class').value || state.classes[0] || '7A';
             const pw = document.getElementById('adm-single-pw').value.trim() || '1234';
-            const name = document.getElementById('adm-single-name').value.trim();
+            const nameInp = document.getElementById('adm-single-name');
+            const name = nameInp.value.trim();
 
             if (!name) {
-                showToast('Сурагчийн овог, нэрийг оруулна уу!', 'error');
-                return;
-            }
-            if (state.students.some(s => s.name.toLowerCase() === name.toLowerCase() && s.className === cls)) {
-                showToast(`${name} (${cls}) аль хэдийн бүртгэгдсэн байна!`, 'error');
+                showToast('Сурагчийн нэрийг оруулна уу!', 'error');
                 return;
             }
 
@@ -4366,47 +4523,47 @@
                 correctCount: 0,
                 totalAttempts: 0
             };
+
             state.students.push(newStu);
             state.studentsClearedByAdmin = false;
-            document.getElementById('adm-single-name').value = '';
-
-            saveLocalState();
-            if (window.fbBridge && window.fbBridge.db) {
-                window.fbBridge.saveStudentDoc(newStu).catch(() => {});
-            }
+            nameInp.value = '';
             saveState(true);
-            renderAdminLists();
+
+            if (window.fbBridge && window.fbBridge.db) {
+                await window.fbBridge.saveStudentDoc(newStu).catch(() => {});
+            }
+
             populateLoginStudentDropdown();
+            renderAdminLists();
             SoundFX.fanfare();
-            showToast(`✅ ${name} (${cls}) бүртгэгдлээ!`, 'success');
+            showToast(`✅ ${name} (${cls}) амжилттай бүртгэгдлээ!`, 'success');
         }
 
-        function adminAddStudentsBulk() {
+        async function adminAddStudentsBulk() {
             const defaultCls = document.getElementById('adm-stu-class').value || state.classes[0] || '7A';
             const defaultPw = document.getElementById('adm-bulk-pw').value.trim() || '1234';
-            const raw = document.getElementById('adm-stu-bulk').value;
-            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-
-            if (!lines.length) {
-                showToast('Бүртгэх сурагчдын нэрсийг оруулна уу!', 'error');
+            const raw = document.getElementById('adm-stu-bulk').value.trim();
+            if (!raw) {
+                showToast('Сурагчдын нэрсийг оруулна уу!', 'error');
                 return;
             }
 
+            const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             let addedCount = 0;
-            lines.forEach((line, idx) => {
+
+            for (const line of lines) {
                 const parts = line.split(/[,;\t]+/).map(p => p.trim()).filter(Boolean);
                 const name = parts[0];
-                let cls = parts[1] ? parts[1].toUpperCase() : defaultCls;
+                if (!name) continue;
+                const cls = parts[1] ? parts[1].toUpperCase() : defaultCls;
                 const pw = parts[2] || defaultPw;
 
-                if (!name) return;
                 if (!state.classes.includes(cls)) {
                     state.classes.push(cls);
                 }
-                if (state.students.some(s => s.name.toLowerCase() === name.toLowerCase() && s.className === cls)) return;
 
-                const newStu = {
-                    id: 'geo_stu_' + Date.now() + '_' + idx + '_' + Math.floor(Math.random() * 999),
+                const stuObj = {
+                    id: 'geo_stu_' + Date.now() + '_' + Math.floor(Math.random() * 99999) + '_' + addedCount,
                     name,
                     className: cls,
                     password: pw,
@@ -4416,21 +4573,21 @@
                     correctCount: 0,
                     totalAttempts: 0
                 };
-                state.students.push(newStu);
-                addedCount++;
+                state.students.push(stuObj);
                 if (window.fbBridge && window.fbBridge.db) {
-                    window.fbBridge.saveStudentDoc(newStu).catch(() => {});
+                    await window.fbBridge.saveStudentDoc(stuObj).catch(() => {});
                 }
-            });
+                addedCount += 1;
+            }
 
             state.studentsClearedByAdmin = false;
             document.getElementById('adm-stu-bulk').value = '';
             saveState(true);
             syncClassDropdowns();
-            renderAdminLists();
             populateLoginStudentDropdown();
+            renderAdminLists();
             SoundFX.fanfare();
-            showToast(`✅ Нийт ${addedCount} сурагч бүртгэгдлээ!`, 'success');
+            showToast(`✅ Нийт ${addedCount} сурагч амжилттай бүртгэгдлээ!`, 'success');
         }
 
         function importStudentsFromFile(event) {
@@ -4441,7 +4598,7 @@
                 document.getElementById('adm-stu-bulk').value = String(e.target.result || '');
                 adminAddStudentsBulk();
             };
-            reader.readAsText(file, 'UTF-8');
+            reader.readAsText(file);
             event.target.value = '';
         }
 
@@ -4464,27 +4621,33 @@
             modal.classList.remove('flex');
         }
 
-        function saveStudentEdit() {
-            const id = document.getElementById('esm-id').value;
-            const name = document.getElementById('esm-name').value.trim();
-            const cls = document.getElementById('esm-class').value;
-            const pw = document.getElementById('esm-password').value.trim() || '1234';
-
-            const stu = state.students.find(s => s.id === id);
-            if (!stu || !name) return;
+        async function saveStudentEdit() {
+            const stuId = document.getElementById('esm-id').value;
+            const stu = state.students.find(s => s.id === stuId);
+            if (!stu) return;
 
             const oldCls = stu.className;
-            stu.name = name;
-            stu.className = cls;
-            stu.password = pw;
+            const newName = document.getElementById('esm-name').value.trim();
+            const newCls = document.getElementById('esm-class').value;
+            const newPw = document.getElementById('esm-password').value.trim() || '1234';
+
+            if (!newName) {
+                showToast('Сурагчийн нэр хоосон байж болохгүй.', 'error');
+                return;
+            }
+
+            stu.name = newName;
+            stu.className = newCls;
+            stu.password = newPw;
 
             saveLocalState();
             if (window.fbBridge && window.fbBridge.db) {
-                window.fbBridge.saveStudentDoc(stu, oldCls).catch(() => {});
+                await window.fbBridge.saveStudentDoc(stu, oldCls).catch(() => {});
             }
-            renderAdminLists();
-            populateLoginStudentDropdown();
+
             closeStudentEditModal();
+            populateLoginStudentDropdown();
+            renderAdminLists();
             showToast('Сурагчийн мэдээлэл шинэчлэгдлээ!', 'success');
         }
 
@@ -4506,73 +4669,71 @@
             modal.classList.remove('flex');
         }
 
-        function confirmTeacherResetPw() {
-            const id = document.getElementById('trpw-stu-id').value;
+        async function confirmTeacherResetPw() {
+            const stuId = document.getElementById('trpw-stu-id').value;
             const newPw = document.getElementById('trpw-new-input').value.trim() || '1234';
-            const stu = state.students.find(s => s.id === id);
+            const stu = state.students.find(s => s.id === stuId);
             if (!stu) return;
+
             stu.password = newPw;
             saveLocalState();
             if (window.fbBridge && window.fbBridge.db) {
-                window.fbBridge.saveStudentDoc(stu).catch(() => {});
+                await window.fbBridge.saveStudentDoc(stu).catch(() => {});
             }
             closeTeacherResetPwModal();
             renderAdminLists();
-            showToast(`🔑 ${stu.name}-ийн нууц үг «${newPw}» боллоо!`, 'success');
+            showToast(`${stu.name}-ийн нууц үг «${newPw}» болж сэргээгдлээ!`, 'success');
         }
 
-        function adminDeleteStudent(stuId) {
+        async function deleteAdminStudent(stuId) {
             const stu = state.students.find(s => s.id === stuId);
             if (!stu) return;
             state.students = state.students.filter(s => s.id !== stuId);
             saveLocalState();
             if (window.fbBridge && window.fbBridge.db) {
-                window.fbBridge.deleteStudentDoc(stu.id, stu.className).catch(() => {});
+                await window.fbBridge.deleteStudentDoc(stu.id, stu.className).catch(() => {});
             }
-            renderAdminLists();
             populateLoginStudentDropdown();
-            showToast(`${stu.name} устгагдлаа.`, 'info');
+            renderAdminLists();
+            showToast(`${stu.name} жагсаалтаас хасагдлаа.`, 'info');
         }
 
-        let clearStudentsArmed = false;
-        function clearStudentListTwoStep() {
+        let clearConfirmArmed = false;
+        async function clearStudentListTwoStep() {
             const btn = document.getElementById('btn-clear-students');
-            if (!clearStudentsArmed) {
-                clearStudentsArmed = true;
-                if (btn) {
-                    btn.textContent = '⚠️ Дахин дарж баталгаажуул!';
-                    btn.className = 'px-3.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-black shadow';
-                }
+            if (!clearConfirmArmed) {
+                clearConfirmArmed = true;
+                if (btn) btn.textContent = '⚠️ Дахин дарж баталгаажуул!';
                 setTimeout(() => {
-                    clearStudentsArmed = false;
-                    if (btn) {
-                        btn.textContent = '🧹 Жагсаалт цэвэрлэх';
-                        btn.className = 'px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-extrabold transition-all';
-                    }
+                    clearConfirmArmed = false;
+                    if (btn) btn.textContent = '🧹 Жагсаалт цэвэрлэх';
                 }, 4000);
                 return;
             }
-            clearStudentsArmed = false;
-            const allCopy = [...state.students];
-            allCopy.forEach(s => {
-                if (window.fbBridge && window.fbBridge.db) {
-                    window.fbBridge.deleteStudentDoc(s.id, s.className).catch(() => {});
-                }
-            });
+            clearConfirmArmed = false;
+            if (btn) btn.textContent = '🧹 Жагсаалт цэвэрлэх';
+
+            const oldList = [...state.students];
             state.students = [];
             state.studentsClearedByAdmin = true;
             saveState(true);
-            renderAdminLists();
+
+            if (window.fbBridge && window.fbBridge.db) {
+                for (const s of oldList) {
+                    await window.fbBridge.deleteStudentDoc(s.id, s.className).catch(() => {});
+                }
+            }
+
             populateLoginStudentDropdown();
-            showToast('Бүх сурагчийн жагсаалт цэвэрлэгдлээ.', 'info');
+            renderAdminLists();
+            showToast('Бүх сурагчдын жагсаалт цэвэрлэгдлээ.', 'info');
         }
 
         function downloadStudentCredentialsCSV() {
-            const header = ['Анги', 'Сурагчийн нэр', 'Нэвтрэх нууц үг'];
-            const rows = [...state.students]
-                .sort((a, b) => a.className.localeCompare(b.className, 'mn') || a.name.localeCompare(b.name, 'mn'))
-                .map(s => [s.className, `"${s.name.replace(/"/g, '""')}"`, s.password || '1234'].join(','));
-            const csv = '\uFEFF' + [header.join(','), ...rows].join('\n');
+            const sorted = [...state.students].sort((a, b) => a.className.localeCompare(b.className, 'mn') || a.name.localeCompare(b.name, 'mn'));
+            const header = ['Анги', 'Сурагчийн нэр', 'Нууц үг'];
+            const rows = sorted.map(s => [s.className, s.name, s.password || '1234']);
+            const csv = '\uFEFF' + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -4580,25 +4741,21 @@
             a.download = `Geography_Student_Passwords_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast('Сурагчдын нэвтрэх нууц үгийн жагсаалт татагдлаа!', 'success');
         }
 
         /* --- Topics Management --- */
         function adminAddTopic() {
             const inp = document.getElementById('adm-new-topic-input');
-            const name = (inp?.value || '').trim();
+            const name = inp.value.trim();
             if (!name) return;
-            if (!state.topics) state.topics = [];
-            if (state.topics.includes(name)) {
-                showToast('Энэ сэдэв аль хэдийн байна!', 'error');
-                return;
+            if (!state.topics.includes(name)) {
+                state.topics.push(name);
+                saveState(true);
+                syncTopicDropdowns();
+                renderAdminLists();
+                showToast(`«${name}» сэдэв нэмэгдлээ!`, 'success');
             }
-            state.topics.push(name);
             inp.value = '';
-            saveState(true);
-            syncTopicDropdowns();
-            renderAdminLists();
-            showToast(`📚 «${name}» сэдэв нэмэгдлээ!`, 'success');
         }
 
         function openTopicEditModal(oldName) {
@@ -4617,108 +4774,133 @@
 
         function saveTopicRename() {
             const oldName = document.getElementById('tem-old-name').value;
-            const newName = (document.getElementById('tem-new-name').value || '').trim();
-            if (!newName) return;
-            state.topics = state.topics.map(t => (t === oldName ? newName : t));
-            [state.wheelQuestions, state.questions, state.facts, state.gameQuestions, state.keywords].forEach(list => {
-                (list || []).forEach(item => {
+            const newName = document.getElementById('tem-new-name').value.trim();
+            if (!newName || oldName === newName) {
+                closeTopicEditModal();
+                return;
+            }
+            const idx = state.topics.indexOf(oldName);
+            if (idx !== -1) state.topics[idx] = newName;
+
+            ['wheelQuestions', 'questions', 'facts', 'gameQuestions', 'keywords'].forEach(bank => {
+                (state[bank] || []).forEach(item => {
                     if (item.cat === oldName) item.cat = newName;
                 });
             });
+
             saveState(true);
+            closeTopicEditModal();
             syncTopicDropdowns();
             renderAdminLists();
-            closeTopicEditModal();
-            showToast('Сэдвийн нэр шинэчлэгдлээ!', 'success');
+            showToast('Сэдвийн нэр бүх санд шинэчлэгдлээ!', 'success');
         }
 
-        function adminDeleteTopic(name) {
-            if (state.topics.length <= 1) {
-                showToast('Хамгийн багадаа 1 сэдэв үлдэх ёстой!', 'error');
-                return;
-            }
+        function deleteAdminTopic(name) {
+            if (state.topics.length <= 1) return;
             state.topics = state.topics.filter(t => t !== name);
             saveState(true);
             syncTopicDropdowns();
             renderAdminLists();
-            showToast(`«${name}» сэдэв устгагдлаа.`, 'info');
+            showToast('Сэдэв устгагдлаа.', 'info');
         }
 
         /* --- 4 Separate Question Banks --- */
         function switchQuestionBankTarget(target) {
             SoundFX.click();
-            activeQuestionBankTarget = target;
+            currentQBankTarget = target;
             cancelEditQuestion();
 
             ['wheel', 'test', 'tf', 'game'].forEach(k => {
                 const btn = document.getElementById(`qbank-tab-${k}`);
-                if (!btn) return;
-                btn.className = k === target
-                    ? 'px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black shadow-sm'
-                    : 'px-3.5 py-2.5 rounded-xl bg-white text-slate-700 border border-slate-200 text-xs font-black';
+                if (btn) {
+                    btn.className = k === target
+                        ? 'px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black shadow-sm'
+                        : 'px-3.5 py-2.5 rounded-xl bg-white text-slate-700 border border-slate-200 text-xs font-black';
+                }
             });
 
             const isTf = target === 'tf';
             const isWheel = target === 'wheel';
-
             document.getElementById('adm-q-options-grid').classList.toggle('hidden', isTf);
-            document.getElementById('adm-q-en-wrapper').classList.toggle('hidden', !isWheel);
             document.getElementById('adm-q-wheel-opt-note').classList.toggle('hidden', !isWheel);
+            document.getElementById('adm-q-en-wrapper').classList.toggle('hidden', !isWheel);
 
             const ansSel = document.getElementById('adm-q-ans');
             const ansLbl = document.getElementById('adm-q-ans-label');
             if (isTf) {
-                ansLbl.textContent = 'Баримт үнэн үү, худал уу?';
+                ansLbl.textContent = 'Баримтын хариу (Үнэн эсвэл Худал)';
                 ansSel.innerHTML = '<option value="true">✓ ҮНЭН (True)</option><option value="false">✕ ХУДАЛ (False)</option>';
             } else {
                 ansLbl.textContent = 'Зөв хариултын хувилбар';
-                ansSel.innerHTML = `
-                    <option value="0">A хувилбар (Улаан утас)</option>
-                    <option value="1">B хувилбар (Цэнхэр утас)</option>
-                    <option value="2">C хувилбар (Ногоон утас)</option>
-                    <option value="3">D хувилбар (Шар утас)</option>
-                `;
+                ansSel.innerHTML = '<option value="0">A хувилбар</option><option value="1">B хувилбар</option><option value="2">C хувилбар</option><option value="3">D хувилбар</option>';
             }
 
             const titles = {
                 wheel: '➕ Хүрдний шинэ асуулт нэмэх',
-                test: '➕ Тест (MCQ) шинэ асуулт нэмэх',
-                tf: '➕ Үнэн / Худал шинэ баримт нэмэх',
-                game: '➕ Тоглоомын шинэ асуулт нэмэх'
+                test: '➕ Сонгох тест (MCQ) нэмэх',
+                tf: '➕ Үнэн / Худал баримт нэмэх',
+                game: '➕ Тоглоомын (Bomb & Snake) асуулт нэмэх'
             };
             document.getElementById('adm-q-form-title').textContent = titles[target];
-            renderAdminLists();
+            renderAdminQuestionList();
         }
 
-        function getActiveQuestionBankArray() {
-            if (activeQuestionBankTarget === 'wheel') return state.wheelQuestions;
-            if (activeQuestionBankTarget === 'test') return state.questions;
-            if (activeQuestionBankTarget === 'tf') return state.facts;
+        function getBankArrayByTarget(target) {
+            if (target === 'wheel') return state.wheelQuestions;
+            if (target === 'test') return state.questions;
+            if (target === 'tf') return state.facts;
             return state.gameQuestions;
+        }
+
+        function renderAdminQuestionList() {
+            const listBox = document.getElementById('adm-questions-list');
+            const arr = getBankArrayByTarget(currentQBankTarget) || [];
+            document.getElementById('adm-q-total-count').textContent = String(arr.length);
+            if (!listBox) return;
+
+            listBox.innerHTML = arr.map(item => `
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">${escapeHtml(item.cat)}</span>
+                        <p class="text-xs sm:text-sm font-extrabold text-slate-900">${escapeHtml(item.prompt || item.statement)}</p>
+                        ${item.englishExplain ? `<p class="text-[11px] font-semibold text-teal-700">🇬🇧 ${escapeHtml(item.englishExplain)}</p>` : ''}
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                        <button onclick="editAdminQuestion('${item.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black">✎</button>
+                        <button onclick="deleteAdminQuestion('${item.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black">✕</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function saveAdminQuestion() {
             const editId = document.getElementById('adm-q-edit-id').value;
-            const cat = document.getElementById('adm-q-cat').value || state.topics[0];
+            const cat = document.getElementById('adm-q-cat').value;
             const prompt = document.getElementById('adm-q-prompt').value.trim();
             const hint = document.getElementById('adm-q-hint').value.trim();
             const explain = document.getElementById('adm-q-explain').value.trim();
-            const enExplain = document.getElementById('adm-q-en-explain').value.trim();
+            const englishExplain = document.getElementById('adm-q-en-explain').value.trim();
+            const ansVal = document.getElementById('adm-q-ans').value;
 
             if (!prompt) {
-                showToast('Асуултын өгүүлбэрээ оруулна уу!', 'error');
+                showToast('Асуултын өгүүлбэрийг оруулна уу!', 'error');
                 return;
             }
 
-            const arr = getActiveQuestionBankArray();
-
-            if (activeQuestionBankTarget === 'tf') {
-                const answer = document.getElementById('adm-q-ans').value === 'true';
+            const arr = getBankArrayByTarget(currentQBankTarget);
+            if (currentQBankTarget === 'tf') {
+                const obj = {
+                    id: editId || ('gf_' + Date.now()),
+                    cat,
+                    statement: prompt,
+                    answer: ansVal === 'true',
+                    explain
+                };
                 if (editId) {
-                    const item = arr.find(x => x.id === editId);
-                    if (item) { item.cat = cat; item.statement = prompt; item.answer = answer; item.explain = explain; }
+                    const idx = arr.findIndex(x => x.id === editId);
+                    if (idx !== -1) arr[idx] = obj;
                 } else {
-                    arr.push({ id: 'gf_' + Date.now(), cat, statement: prompt, answer, explain });
+                    arr.push(obj);
                 }
             } else {
                 const options = [
@@ -4727,36 +4909,21 @@
                     document.getElementById('adm-q-o2').value.trim(),
                     document.getElementById('adm-q-o3').value.trim()
                 ];
-                const ans = parseInt(document.getElementById('adm-q-ans').value, 10) || 0;
-
-                if (activeQuestionBankTarget !== 'wheel' && options.some(o => !o)) {
-                    showToast('A, B, C, D бүх хувилбарыг бөглөнө үү!', 'error');
-                    return;
-                }
-
+                const obj = {
+                    id: editId || ('gq_' + Date.now()),
+                    cat,
+                    prompt,
+                    options,
+                    ans: parseInt(ansVal, 10) || 0,
+                    hint,
+                    explain,
+                    englishExplain
+                };
                 if (editId) {
-                    const item = arr.find(x => x.id === editId);
-                    if (item) {
-                        item.cat = cat;
-                        item.prompt = prompt;
-                        item.options = options;
-                        item.ans = ans;
-                        item.hint = hint;
-                        item.explain = explain;
-                        if (activeQuestionBankTarget === 'wheel') item.englishExplain = enExplain;
-                    }
+                    const idx = arr.findIndex(x => x.id === editId);
+                    if (idx !== -1) arr[idx] = obj;
                 } else {
-                    const newItem = {
-                        id: 'gq_' + Date.now(),
-                        cat,
-                        prompt,
-                        options,
-                        ans,
-                        hint,
-                        explain
-                    };
-                    if (activeQuestionBankTarget === 'wheel') newItem.englishExplain = enExplain;
-                    arr.push(newItem);
+                    arr.push(obj);
                 }
             }
 
@@ -4764,11 +4931,11 @@
             saveState(true);
             renderAdminLists();
             SoundFX.fanfare();
-            showToast('💾 Асуулт өгөгдлийн санд хадгалагдлаа!', 'success');
+            showToast('Асуулт амжилттай хадгалагдлаа!', 'success');
         }
 
         function editAdminQuestion(id) {
-            const arr = getActiveQuestionBankArray();
+            const arr = getBankArrayByTarget(currentQBankTarget);
             const item = arr.find(x => x.id === id);
             if (!item) return;
 
@@ -4779,18 +4946,15 @@
             document.getElementById('adm-q-explain').value = item.explain || '';
             document.getElementById('adm-q-en-explain').value = item.englishExplain || '';
 
-            if (activeQuestionBankTarget === 'tf') {
+            if (currentQBankTarget === 'tf') {
                 document.getElementById('adm-q-ans').value = String(Boolean(item.answer));
             } else {
-                const opts = item.options || ['', '', '', ''];
-                document.getElementById('adm-q-o0').value = opts[0] || '';
-                document.getElementById('adm-q-o1').value = opts[1] || '';
-                document.getElementById('adm-q-o2').value = opts[2] || '';
-                document.getElementById('adm-q-o3').value = opts[3] || '';
                 document.getElementById('adm-q-ans').value = String(item.ans || 0);
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`adm-q-o${i}`).value = item.options?.[i] || '';
+                }
             }
 
-            document.getElementById('adm-q-form-title').textContent = '✏️ Асуулт засах';
             document.getElementById('adm-q-cancel-edit').classList.remove('hidden');
             document.getElementById('adm-q-form-box')?.scrollIntoView({ behavior: 'smooth' });
         }
@@ -4798,21 +4962,21 @@
         function cancelEditQuestion() {
             document.getElementById('adm-q-edit-id').value = '';
             document.getElementById('adm-q-prompt').value = '';
-            document.getElementById('adm-q-o0').value = '';
-            document.getElementById('adm-q-o1').value = '';
-            document.getElementById('adm-q-o2').value = '';
-            document.getElementById('adm-q-o3').value = '';
             document.getElementById('adm-q-hint').value = '';
             document.getElementById('adm-q-explain').value = '';
             document.getElementById('adm-q-en-explain').value = '';
-            document.getElementById('adm-q-cancel-edit').classList.add('hidden');
+            for (let i = 0; i < 4; i++) {
+                const inp = document.getElementById(`adm-q-o${i}`);
+                if (inp) inp.value = '';
+            }
+            document.getElementById('adm-q-cancel-edit')?.classList.add('hidden');
         }
 
         function deleteAdminQuestion(id) {
-            if (activeQuestionBankTarget === 'wheel') state.wheelQuestions = state.wheelQuestions.filter(x => x.id !== id);
-            if (activeQuestionBankTarget === 'test') state.questions = state.questions.filter(x => x.id !== id);
-            if (activeQuestionBankTarget === 'tf') state.facts = state.facts.filter(x => x.id !== id);
-            if (activeQuestionBankTarget === 'game') state.gameQuestions = state.gameQuestions.filter(x => x.id !== id);
+            if (currentQBankTarget === 'wheel') state.wheelQuestions = state.wheelQuestions.filter(x => x.id !== id);
+            if (currentQBankTarget === 'test') state.questions = state.questions.filter(x => x.id !== id);
+            if (currentQBankTarget === 'tf') state.facts = state.facts.filter(x => x.id !== id);
+            if (currentQBankTarget === 'game') state.gameQuestions = state.gameQuestions.filter(x => x.id !== id);
             saveState(true);
             renderAdminLists();
             showToast('Асуулт устгагдлаа.', 'info');
@@ -4821,7 +4985,7 @@
         /* --- Keywords Admin --- */
         function saveAdminKeyword() {
             const editId = document.getElementById('adm-kw-edit-id').value;
-            const cat = document.getElementById('adm-kw-cat').value || state.topics[0];
+            const cat = document.getElementById('adm-kw-cat').value;
             const term = document.getElementById('adm-kw-term').value.trim();
             const def = document.getElementById('adm-kw-def').value.trim();
             if (!term || !def) {
@@ -4854,7 +5018,7 @@
             document.getElementById('adm-kw-edit-id').value = '';
             document.getElementById('adm-kw-term').value = '';
             document.getElementById('adm-kw-def').value = '';
-            document.getElementById('adm-kw-cancel-btn').classList.add('hidden');
+            document.getElementById('adm-kw-cancel-btn')?.classList.add('hidden');
         }
 
         function deleteAdminKeyword(id) {
@@ -4864,14 +5028,14 @@
             showToast('Нэр томьёо устгагдлаа.', 'info');
         }
 
-        /* --- Security & New Firebase Project Config --- */
+        /* --- Security, Backup & New Firebase Project Config --- */
         function updateTeacherPin() {
-            const newPin = document.getElementById('adm-new-pin').value.trim();
-            if (newPin.length < 4) {
-                showToast('PIN код дор хаяж 4 тэмдэгттэй байна!', 'error');
+            const pin = document.getElementById('adm-new-pin').value.trim();
+            if (pin.length < 4) {
+                showToast('PIN код 4 ба түүнээс дээш оронтой байна.', 'error');
                 return;
             }
-            state.teacherPin = newPin;
+            state.teacherPin = pin;
             document.getElementById('adm-new-pin').value = '';
             saveState(true);
             showToast('Багшийн PIN код шинэчлэгдлээ!', 'success');
@@ -4881,167 +5045,37 @@
             const val = Math.max(5, parseInt(document.getElementById('adm-bonus-divisor').value, 10) || 25);
             state.bonusDivisor = val;
             saveState(true);
-            showToast(`Улирлын нэмэлт дүнгийн хуваагч ${val} боллоо!`, 'success');
+            showToast('Улирлын нэмэлт дүнгийн хуваагч хадгалагдлаа!', 'success');
         }
 
         function toggleStudentScoreVisibility() {
             state.showScoresToStudents = !state.showScoresToStudents;
             saveState(true);
-            renderAdminLists();
             renderNavTabs();
-            showToast(state.showScoresToStudents ? 'Сурагчдад оноо харагдана.' : 'Сурагчдад оноо нууцлагдлаа.', 'info');
+            renderAdminLists();
+            showToast(state.showScoresToStudents ? 'Сурагчдад онооны самбар харагдана.' : 'Онооны самбар нууцлагдлаа.', 'info');
         }
 
         function saveCustomFirebaseConfig() {
             const raw = document.getElementById('adm-fb-config-input').value.trim();
-            if (!raw) {
-                showToast('Firebase JSON кодоо хуулж оруулна уу!', 'error');
-                return;
-            }
             try {
                 const parsed = JSON.parse(raw);
                 if (!parsed.apiKey || !parsed.projectId) {
-                    throw new Error('apiKey болон projectId заавал байх ёстой.');
+                    showToast('apiKey болон projectId заавал байх шаардлагатай!', 'error');
+                    return;
                 }
                 localStorage.setItem('geography_custom_fb_config_v1', JSON.stringify(parsed));
-                showToast('✅ Шинэ Firebase Project хадгалагдлаа! Холбогдож байна...', 'success');
+                showToast('Шинэ Firebase тохиргоо хадгалагдлаа. Хуудас дахин ачаалж байна...', 'success');
                 setTimeout(() => location.reload(), 900);
             } catch (e) {
-                showToast('JSON формат буруу байна: ' + e.message, 'error');
+                showToast('JSON формат буруу байна. Зөв JSON объект хуулна уу!', 'error');
             }
         }
 
         function resetCustomFirebaseConfig() {
             localStorage.removeItem('geography_custom_fb_config_v1');
-            showToast('Тохиргоо цэвэрлэгдлээ.', 'info');
-            setTimeout(() => location.reload(), 700);
-        }
-
-        /* --- Master Render Admin Lists --- */
-        function renderAdminLists() {
-            syncClassDropdowns();
-            syncTopicDropdowns();
-
-            // 1. Dynamic Class Cards with Edit & Delete
-            const clsChips = document.getElementById('adm-class-chips');
-            if (clsChips) {
-                clsChips.innerHTML = (state.classes || []).map(cls => {
-                    const count = state.students.filter(s => s.className === cls).length;
-                    return `
-                        <div class="px-3.5 py-2 rounded-2xl bg-white border border-emerald-200 shadow-2xs flex items-center gap-2.5">
-                            <div>
-                                <span class="text-sm font-black text-emerald-950">${escapeHtml(cls)}</span>
-                                <span class="ml-1.5 text-xs font-bold text-slate-500">(${count} сурагч)</span>
-                            </div>
-                            <div class="flex items-center gap-1 border-l border-slate-200 pl-2">
-                                <button onclick="openClassEditModal('${escapeHtml(cls)}')" title="Ангийн нэр засах" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-extrabold">✎ Засах</button>
-                                <button onclick="openClassDeleteModal('${escapeHtml(cls)}')" title="Анги устгах" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold">✕</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // 2. Student List
-            const stuFilter = document.getElementById('adm-stu-filter-class')?.value || 'ALL';
-            const stuQuery = (document.getElementById('adm-stu-search')?.value || '').trim().toLowerCase();
-            const filteredStudents = state.students
-                .filter(s => (stuFilter === 'ALL' || s.className === stuFilter) && (!stuQuery || s.name.toLowerCase().includes(stuQuery)))
-                .sort((a, b) => a.className.localeCompare(b.className, 'mn') || a.name.localeCompare(b.name, 'mn'));
-
-            const stuCountEl = document.getElementById('adm-stu-total-count');
-            if (stuCountEl) stuCountEl.textContent = String(filteredStudents.length);
-
-            const stuListBox = document.getElementById('adm-stu-list');
-            if (stuListBox) {
-                stuListBox.innerHTML = filteredStudents.map(s => `
-                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-1.5">
-                                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">${escapeHtml(s.className)}</span>
-                                <span class="text-xs font-black text-slate-900 truncate">${escapeHtml(s.name)}</span>
-                            </div>
-                            <div class="text-[11px] text-slate-500 font-mono-code mt-0.5">Нууц үг: ${escapeHtml(s.password || '1234')} • Оноо: ${getStudentTotal(s)}</div>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button onclick="openTeacherResetPwModal('${s.id}')" title="Нууц үг сэргээх" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-extrabold">🔑</button>
-                            <button onclick="openStudentEditModal('${s.id}')" title="Засах" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-extrabold">✎</button>
-                            <button onclick="adminDeleteStudent('${s.id}')" title="Устгах" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold">✕</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // 3. Topics List
-            const topicsBox = document.getElementById('adm-topics-list');
-            if (topicsBox) {
-                topicsBox.innerHTML = (state.topics || []).map(t => `
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                        <span class="text-xs font-black text-slate-900">${escapeHtml(t)}</span>
-                        <div class="flex gap-1">
-                            <button onclick="openTopicEditModal('${escapeHtml(t)}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-extrabold">✎ Засах</button>
-                            <button onclick="adminDeleteTopic('${escapeHtml(t)}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold">✕</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // 4. Question Banks
-            document.getElementById('qbank-count-wheel').textContent = String((state.wheelQuestions || []).length);
-            document.getElementById('qbank-count-test').textContent = String((state.questions || []).length);
-            document.getElementById('qbank-count-tf').textContent = String((state.facts || []).length);
-            document.getElementById('qbank-count-game').textContent = String((state.gameQuestions || []).length);
-
-            const qArr = getActiveQuestionBankArray();
-            document.getElementById('adm-q-total-count').textContent = String(qArr.length);
-            const qListBox = document.getElementById('adm-questions-list');
-            if (qListBox) {
-                qListBox.innerHTML = qArr.map(item => `
-                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-start justify-between gap-3">
-                        <div class="space-y-1">
-                            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">${escapeHtml(item.cat)}</span>
-                            <p class="text-xs font-extrabold text-slate-900">${escapeHtml(item.prompt || item.statement || '')}</p>
-                            ${item.englishExplain ? `<p class="text-[11px] text-teal-700 font-semibold">🇬🇧 ${escapeHtml(item.englishExplain)}</p>` : ''}
-                        </div>
-                        <div class="flex gap-1 shrink-0">
-                            <button onclick="editAdminQuestion('${item.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-extrabold">✎ Засах</button>
-                            <button onclick="deleteAdminQuestion('${item.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold">✕</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // 5. Jeopardy Editor
-            renderAdminJeopardyEditor();
-
-            // 6. Keywords List
-            document.getElementById('adm-kw-total-count').textContent = String((state.keywords || []).length);
-            const kwBox = document.getElementById('adm-keywords-list');
-            if (kwBox) {
-                kwBox.innerHTML = (state.keywords || []).map(kw => `
-                    <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                        <div>
-                            <div class="text-xs font-black font-mono-code text-emerald-800">${escapeHtml(kw.term)} <span class="text-[10px] font-sans text-slate-400">(${escapeHtml(kw.cat)})</span></div>
-                            <div class="text-xs text-slate-700 font-semibold">${escapeHtml(kw.def)}</div>
-                        </div>
-                        <div class="flex gap-1 shrink-0">
-                            <button onclick="editAdminKeyword('${kw.id}')" class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-extrabold">✎</button>
-                            <button onclick="deleteAdminKeyword('${kw.id}')" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-[11px] font-extrabold">✕</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // 7. Security & Visibility
-            const visBtn = document.getElementById('adm-toggle-stu-scores');
-            if (visBtn) {
-                visBtn.textContent = state.showScoresToStudents ? 'Нээлттэй (Сурагч харна)' : 'Хаалттай (Нууцлагдсан)';
-                visBtn.className = state.showScoresToStudents
-                    ? 'px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-extrabold shrink-0'
-                    : 'px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-extrabold shrink-0';
-            }
-            const divInp = document.getElementById('adm-bonus-divisor');
-            if (divInp) divInp.value = String(state.bonusDivisor || 25);
+            showToast('Firebase тохиргоо цэвэрлэгдлээ. Дахин ачаалж байна...', 'info');
+            setTimeout(() => location.reload(), 800);
         }
 
         function forceCloudSync() {
@@ -5050,20 +5084,18 @@
                 state.students.forEach(s => window.fbBridge.saveStudentDoc(s).catch(() => {}));
                 showToast('☁️ Бүх өгөгдөл Firebase Cloud руу илгээгдлээ!', 'success');
             } else {
-                showToast('Шинэ Firebase Project-оо эхлээд «PIN & Шинэ Firebase» хэсэгт холбоно уу.', 'info');
+                showToast('Шинэ Firebase Project хараахан холбогдоогүй байна.', 'info');
             }
         }
 
         function downloadBackupJSON() {
-            const json = JSON.stringify(state, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Geography_Platform_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `Geography_Backup_${new Date().toISOString().slice(0, 10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast('Нөөц файл (JSON) татагдлаа!', 'success');
         }
 
         function uploadBackupJSON(event) {
@@ -5073,35 +5105,35 @@
             reader.onload = (e) => {
                 try {
                     const parsed = JSON.parse(String(e.target.result || '{}'));
-                    state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...parsed };
+                    state = { ...DEFAULT_STATE, ...parsed };
                     saveState(true);
                     syncClassDropdowns();
                     syncTopicDropdowns();
                     renderAdminLists();
-                    showToast('✅ Нөөц файл амжилттай сэргээгдлээ!', 'success');
+                    showToast('JSON нөөц файл амжилттай сэргээгдлээ!', 'success');
                 } catch (err) {
                     showToast('JSON файл уншихад алдаа гарлаа.', 'error');
                 }
             };
-            reader.readAsText(file, 'UTF-8');
+            reader.readAsText(file);
             event.target.value = '';
         }
 
-        /* -------------------- 16. INITIALIZATION -------------------- */
-        window.addEventListener('DOMContentLoaded', () => {
-            loadLocalState();
-            syncClassDropdowns();
-            syncTopicDropdowns();
-            populateLoginStudentDropdown();
+        /* -------------------- INITIALIZATION -------------------- */
+        loadLocalState();
+        syncClassDropdowns();
+        syncTopicDropdowns();
+        populateLoginStudentDropdown();
 
-            try {
-                const savedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-                if (savedSession) {
-                    currentUser = JSON.parse(savedSession);
-                    if (currentUser) launchApp();
+        try {
+            const savedSess = sessionStorage.getItem(SESSION_STORAGE_KEY);
+            if (savedSess) {
+                currentUser = JSON.parse(savedSess);
+                if (currentUser && currentUser.role) {
+                    launchApp();
                 }
-            } catch (e) {}
-        });
+            }
+        } catch (e) {}
     </script>
 </body>
 </html>
